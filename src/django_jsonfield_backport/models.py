@@ -104,8 +104,16 @@ class JSONField(CheckFieldDefaultMixin, Field):
         except json.JSONDecodeError:
             return value
 
-    def get_internal_type(self):
-        return 'JSONField'
+
+    def db_type(self, connection):
+        if connection.vendor == 'postgresql':
+            return 'jsonb'
+        elif connection.vendor == 'sqlite':
+            return 'text'
+        elif connection.vendor == 'mysql':
+            return 'json'
+        elif connection.vendor == 'oracle':
+            return 'nclob'
 
     def get_prep_value(self, value):
         if value is None:
