@@ -104,6 +104,18 @@ class JSONField(CheckFieldDefaultMixin, Field):
         except json.JSONDecodeError:
             return value
 
+    def db_check(self, connection):
+        if connection.features.supports_column_check_constraints:
+            data = self.db_type_parameters(connection)
+            check = ''
+            if connection.vendor == 'sqlite':
+                check = '(JSON_VALID("%(column)s") OR "%(column)s" IS NULL)'
+            elif connection.vendor == 'mysql':
+                if self.mysql_is_mariadb and self.mysql_version < (10, 4, 3):
+                    check = 'JSON_VALID(`%(column)s`)'
+            elif connection.vendor == 'oracle':
+                check = '%(qn_column)s IS JSON'
+            return check % data
 
     def db_type(self, connection):
         if connection.vendor == 'postgresql':
