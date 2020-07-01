@@ -97,7 +97,7 @@ class JSONField(CheckFieldDefaultMixin, Field):
     def from_db_value(self, value, expression, connection):
         if value is None:
             return value
-        if connection.features.has_native_json_field and self.decoder is None:
+        if connection.vendor == 'postgresql' and self.decoder is None:
             return value
         try:
             return json.loads(value, cls=self.decoder)
@@ -140,10 +140,10 @@ class JSONField(CheckFieldDefaultMixin, Field):
 
     def select_format(self, compiler, sql, params):
         if (
-            compiler.connection.features.has_native_json_field and
+            compiler.connection.vendor == 'postgresql' and
             self.decoder is not None
         ):
-            return compiler.connection.ops.json_cast_text_sql(sql), params
+            return '(%s)::text', params
         return super().select_format(compiler, sql, params)
 
     def validate(self, value, model_instance):
@@ -535,7 +535,7 @@ class KeyTransformIRegex(CaseInsensitiveMixin, KeyTransformTextLookupMixin, look
 class KeyTransformNumericLookupMixin:
     def process_rhs(self, compiler, connection):
         rhs, rhs_params = super().process_rhs(compiler, connection)
-        if not connection.features.has_native_json_field:
+        if not connection.vendor == 'postgresql':
             rhs_params = [json.loads(value) for value in rhs_params]
         return rhs, rhs_params
 
