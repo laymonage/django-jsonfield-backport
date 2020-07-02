@@ -118,14 +118,14 @@ class JSONField(CheckFieldDefaultMixin, Field):
         return None
 
     def db_type(self, connection):
+        if connection.vendor == 'mysql':
+            return 'json'
+        if connection.vendor == 'oracle':
+            return 'nclob'
         if connection.vendor == 'postgresql':
             return 'jsonb'
-        elif connection.vendor == 'sqlite':
+        if connection.vendor == 'sqlite':
             return 'text'
-        elif connection.vendor == 'mysql':
-            return 'json'
-        elif connection.vendor == 'oracle':
-            return 'nclob'
 
     def get_prep_value(self, value):
         if value is None:
