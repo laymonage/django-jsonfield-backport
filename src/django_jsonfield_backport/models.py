@@ -8,6 +8,7 @@ from django.db.models.lookups import FieldGetDbPrepValueMixin, Lookup, Transform
 from django.utils.translation import gettext_lazy as _
 
 from . import forms
+from .features import features
 
 __all__ = ['JSONField']
 
@@ -74,7 +75,7 @@ class JSONField(CheckFieldDefaultMixin, Field):
             connection = connections[db]
             if not (
                 'supports_json_field' in self.model._meta.required_db_features or
-                connection.features.supports_json_field
+                features[connection.vendor].supports_json_field
             ):
                 errors.append(
                     checks.Error(
@@ -97,7 +98,7 @@ class JSONField(CheckFieldDefaultMixin, Field):
     def from_db_value(self, value, expression, connection):
         if value is None:
             return value
-        if connection.vendor == 'postgresql' and self.decoder is None:
+        if features[connection.vendor].has_native_json_field and self.decoder is None:
             return value
         try:
             return json.loads(value, cls=self.decoder)
@@ -105,7 +106,7 @@ class JSONField(CheckFieldDefaultMixin, Field):
             return value
 
     def db_check(self, connection):
-        if connection.features.supports_column_check_constraints:
+        if features[connection.vendor].supports_column_check_constraints:
             data = self.db_type_parameters(connection)
             check = ''
             if connection.vendor == 'sqlite':
@@ -140,7 +141,7 @@ class JSONField(CheckFieldDefaultMixin, Field):
 
     def select_format(self, compiler, sql, params):
         if (
-            compiler.connection.vendor == 'postgresql' and
+            features[compiler.connection.vendor].has_native_json_field and
             self.decoder is not None
         ):
             return '(%s)::text', params
@@ -535,7 +536,7 @@ class KeyTransformIRegex(CaseInsensitiveMixin, KeyTransformTextLookupMixin, look
 class KeyTransformNumericLookupMixin:
     def process_rhs(self, compiler, connection):
         rhs, rhs_params = super().process_rhs(compiler, connection)
-        if not connection.vendor == 'postgresql':
+        if not features[connection.vendor].has_native_json_field:
             rhs_params = [json.loads(value) for value in rhs_params]
         return rhs, rhs_params
 
