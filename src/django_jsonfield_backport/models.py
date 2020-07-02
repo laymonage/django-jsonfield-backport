@@ -144,7 +144,8 @@ class JSONField(CheckFieldDefaultMixin, Field):
             features[compiler.connection.vendor].has_native_json_field and
             self.decoder is not None
         ):
-            return '(%s)::text', params
+            if compiler.connection.vendor == 'postgresql':
+                return '(%s)::text', params
         return super().select_format(compiler, sql, params)
 
     def validate(self, value, model_instance):
