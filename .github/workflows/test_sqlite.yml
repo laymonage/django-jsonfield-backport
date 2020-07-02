@@ -1,9 +1,9 @@
-name: Test
+name: Test (sqlite)
 
 on: [push]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
@@ -22,3 +22,6 @@ jobs:
         pip install tox tox-gh-actions
     - name: Test with tox
       run: tox
+      env:
+        DB_BACKEND: sqlite3
+        DB_NAME: ":memory:"
