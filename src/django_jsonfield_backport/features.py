@@ -1,11 +1,17 @@
+import functools
+import json
 import operator
 
 from django.core.exceptions import ImproperlyConfigured
 from django.db import transaction
 from django.db.backends.base.features import BaseDatabaseFeatures
+from django.db.backends.signals import connection_created
 from django.db.backends.sqlite3.base import DatabaseFeatures as BaseSQLiteFeatures
+from django.db.backends.sqlite3.base import none_guard
 from django.db.utils import OperationalError
+from django.dispatch import receiver
 from django.utils.functional import cached_property
+from django.utils.version import PY38
 
 try:
     from django.db.backends.mysql.base import DatabaseFeatures as BaseMySQLFeatures
@@ -96,3 +102,24 @@ features = {
     'postgresql': PostgresFeatures,
     'sqlite': SQLiteFeatures,
 }
+
+
+@none_guard
+def _sqlite_json_contains(haystack, needle):
+    target, candidate = json.loads(haystack), json.loads(needle)
+    if isinstance(target, dict) and isinstance(candidate, dict):
+        return target.items() >= candidate.items()
+    return target == candidate
+
+
+@receiver(connection_created)
+def extend_sqlite(connection=None, **kwargs):
+    if connection.vendor == 'sqlite':
+        if PY38:
+            create_deterministic_function = functools.partial(
+                connection.connection.create_function,
+                deterministic=True,
+            )
+        else:
+            create_deterministic_function = connection.connection.create_function
+        create_deterministic_function('JSON_CONTAINS', 2, _sqlite_json_contains)
