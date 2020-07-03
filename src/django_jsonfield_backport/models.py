@@ -127,6 +127,13 @@ class JSONField(CheckFieldDefaultMixin, Field):
         if connection.vendor == 'sqlite':
             return 'text'
 
+    def cast_template(self, connection):
+        # MariaDB doesn't support explicit cast to JSON.
+        # Need to wait for https://github.com/django/django/pull/13143 first.
+        if connection.mysql_is_mariadb:
+            return "JSON_EXTRACT(%(expressions)s, '$')"
+        return super().cast_template(connection)
+
     def get_prep_value(self, value):
         if value is None:
             return value
