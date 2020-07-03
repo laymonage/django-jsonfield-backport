@@ -128,6 +128,11 @@ class JSONField(CheckFieldDefaultMixin, Field):
         if connection.vendor == 'sqlite':
             return 'text'
 
+    def get_db_converters(self, connection):
+        if connection.vendor == 'oracle':
+            return [connection.ops.convert_textfield_value] + super().get_db_converters(connection)
+        return super().get_db_converters(connection)
+
     def get_prep_value(self, value):
         if value is None:
             return value
@@ -176,6 +181,10 @@ class JSONCast(Cast):
         template = None
         if connection.mysql_is_mariadb:
             template = "JSON_EXTRACT(%(expressions)s, '$')"
+        return super().as_sql(compiler, connection, template=template, **extra_context)
+
+    def as_oracle(self, compiler, connection, **extra_context):
+        template = "JSON_QUERY(%(expressions)s, '$')"
         return super().as_sql(compiler, connection, template=template, **extra_context)
 
 
@@ -331,6 +340,8 @@ class JSONExact(lookups.Exact):
             if rhs == '%s' and rhs_params == [None]:
                 # Use JSON_TYPE instead of JSON_EXTRACT for NULLs.
                 lhs = "JSON_TYPE(%s, '$')" % lhs
+        elif connection.vendor == 'oracle':
+            lhs = 'DBMS_LOB.SUBSTR(%s)' % lhs
         return lhs, lhs_params
 
     def process_rhs(self, compiler, connection):
