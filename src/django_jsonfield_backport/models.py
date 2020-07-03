@@ -109,7 +109,7 @@ class JSONField(CheckFieldDefaultMixin, Field):
         if features[connection.vendor].supports_column_check_constraints:
             data = self.db_type_parameters(connection)
             if connection.vendor == 'mysql':
-                if self.mysql_is_mariadb and self.mysql_version < (10, 4, 3):
+                if connection.mysql_is_mariadb and connection.mysql_version < (10, 4, 3):
                     return 'JSON_VALID(`%(column)s`)' % data
             if connection.vendor == 'oracle':
                 return '%(qn_column)s IS JSON' % data
