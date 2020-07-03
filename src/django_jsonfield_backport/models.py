@@ -406,6 +406,16 @@ class KeyTransformTextLookupMixin:
     key values to text and performing the lookup on the resulting
     representation.
     """
+    def process_lhs(self, compiler, connection):
+        lhs, lhs_params = super().process_lhs(compiler, connection)
+        if connection.vendor == 'mysql':
+            if connection.mysql_is_mariadb or self.lookup_name in (
+                'iexact', 'contains', 'icontains', 'startswith', 'istartswith',
+                'endswith', 'iendswith', 'regex', 'iregex',
+            ):
+                return 'JSON_UNQUOTE(%s)' % lhs, lhs_params
+        return lhs, lhs_params
+
     def __init__(self, key_transform, *args, **kwargs):
         if not isinstance(key_transform, KeyTransform):
             raise TypeError(
