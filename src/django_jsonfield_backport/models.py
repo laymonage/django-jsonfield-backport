@@ -4,6 +4,7 @@ from django.core import checks, exceptions
 from django.db import NotSupportedError, connections, router
 from django.db.models import lookups
 from django.db.models.fields import Field
+from django.db.models.functions import Cast
 from django.db.models.lookups import FieldGetDbPrepValueMixin, Lookup, Transform
 from django.utils.translation import gettext_lazy as _
 
@@ -127,13 +128,6 @@ class JSONField(CheckFieldDefaultMixin, Field):
         if connection.vendor == 'sqlite':
             return 'text'
 
-    def cast_template(self, connection):
-        # MariaDB doesn't support explicit cast to JSON.
-        # Need to wait for https://github.com/django/django/pull/13143 first.
-        if connection.mysql_is_mariadb:
-            return "JSON_EXTRACT(%(expressions)s, '$')"
-        return super().cast_template(connection)
-
     def get_prep_value(self, value):
         if value is None:
             return value
@@ -175,6 +169,14 @@ class JSONField(CheckFieldDefaultMixin, Field):
             'decoder': self.decoder,
             **kwargs,
         })
+
+
+class JSONCast(Cast):
+    def as_mysql(self, compiler, connection, **extra_context):
+        template = None
+        if connection.mysql_is_mariadb:
+            template = "JSON_EXTRACT(%(expressions)s, '$')"
+        return super().as_sql(compiler, connection, template=template, **extra_context)
 
 
 def compile_json_path(key_transforms, include_root=True):

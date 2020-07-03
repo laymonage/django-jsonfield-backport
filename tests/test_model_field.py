@@ -19,7 +19,7 @@ from django_jsonfield_backport import forms
 from django_jsonfield_backport.features import features
 from django_jsonfield_backport.models import (
     KeyTextTransform, KeyTransform, KeyTransformFactory,
-    KeyTransformTextLookupMixin, JSONField,
+    KeyTransformTextLookupMixin, JSONField, JSONCast
 )
 
 from .models import CustomJSONDecoder, JSONModel, NullableJSONModel
@@ -370,7 +370,7 @@ class TestQuerying(TestCase):
             NullableJSONModel.objects.filter(value__d__0__isnull=False).annotate(
                 key=KeyTransform('d', 'value'),
                 chain=KeyTransform('0', 'key'),
-                expr=KeyTransform('0', Cast('key', JSONField())),
+                expr=KeyTransform('0', JSONCast('key', JSONField())),
             ).filter(chain=F('expr')),
             [self.objs[4]],
         )
@@ -380,7 +380,7 @@ class TestQuerying(TestCase):
             NullableJSONModel.objects.filter(value__d__0__isnull=False).annotate(
                 key=KeyTransform('d', 'value'),
                 chain=KeyTransform('f', KeyTransform('1', 'key')),
-                expr=KeyTransform('f', KeyTransform('1', Cast('key', JSONField()))),
+                expr=KeyTransform('f', KeyTransform('1', JSONCast('key', JSONField()))),
             ).filter(chain=F('expr')),
             [self.objs[4]],
         )
