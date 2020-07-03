@@ -409,11 +409,7 @@ class KeyTransformTextLookupMixin:
     def process_lhs(self, compiler, connection):
         lhs, lhs_params = super().process_lhs(compiler, connection)
         if connection.vendor == 'mysql':
-            if connection.mysql_is_mariadb or self.lookup_name in (
-                'iexact', 'contains', 'icontains', 'startswith', 'istartswith',
-                'endswith', 'iendswith', 'regex', 'iregex',
-            ):
-                return 'JSON_UNQUOTE(%s)' % lhs, lhs_params
+            return 'JSON_UNQUOTE(%s)' % lhs, lhs_params
         return lhs, lhs_params
 
     def __init__(self, key_transform, *args, **kwargs):
@@ -470,6 +466,8 @@ class KeyTransformExact(JSONExact):
             if rhs == '%s' and rhs_params == ['null']:
                 lhs, _ = self.lhs.preprocess_lhs(compiler, connection, lhs_only=True)
                 lhs = 'JSON_TYPE(%s, %%s)' % lhs
+        elif connection.vendor == 'mysql' and connection.mysql_is_mariadb:
+            lhs = 'JSON_UNQUOTE(%s)' % lhs
         return lhs, lhs_params
 
     def process_rhs(self, compiler, connection):
