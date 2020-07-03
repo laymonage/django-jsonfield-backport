@@ -144,7 +144,7 @@ class JSONField(CheckFieldDefaultMixin, Field):
             self.decoder is not None
         ):
             if compiler.connection.vendor == 'postgresql':
-                return '(%s)::text', params
+                return '(%s)::text' % sql, params
         return super().select_format(compiler, sql, params)
 
     def validate(self, value, model_instance):
