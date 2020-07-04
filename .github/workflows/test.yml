@@ -2,6 +2,9 @@ name: Test
 
 on: [push]
 
+env:
+  COVERALLS_REPO_TOKEN: PCa7chQGMdH1fxETpgGHixvWDTPPX44P3
+
 jobs:
   mysql:
     runs-on: ubuntu-latest
