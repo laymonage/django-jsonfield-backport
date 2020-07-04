@@ -43,6 +43,12 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+    - uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ github.job }}-${{ hashFiles('tox.ini') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -69,13 +75,13 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Download Oracle Database setup script
+    - name: Download Oracle Database Docker image and setup script
       run: |
+        docker pull quay.io/maksymbilenko/oracle-12c
         mkdir oracle-scripts && cd oracle-scripts
         wget https://gist.github.com/laymonage/b40c032770adbae53b1b6029655f792f/raw/e7aed2dcfb16612b5488c252bfb4911ab5f8c2a0/01_create_user.sql
     - name: Run Oracle Database Docker image
       run: |
-        docker pull quay.io/maksymbilenko/oracle-12c
         docker run --name oracle -d -p 1521:1521 -v `pwd`/oracle-scripts:/docker-entrypoint-initdb.d quay.io/maksymbilenko/oracle-12c
     - name: Install Oracle Instant Client
       run: |
@@ -85,6 +91,12 @@ jobs:
     - name: Wait for Oracle Database to finish setup
       run: |
         until docker logs oracle | grep "Database ready to use."; do echo "Waiting..." && sleep 5; done
+    - uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ github.job }}-${{ hashFiles('tox.ini') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -128,6 +140,12 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+    - uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ github.job }}-${{ hashFiles('tox.ini') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -153,6 +171,12 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+    - uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ github.job }}-${{ hashFiles('tox.ini') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
