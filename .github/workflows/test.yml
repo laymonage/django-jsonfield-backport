@@ -1,0 +1,161 @@
+name: Test
+
+on: [push]
+
+jobs:
+  mysql:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8]
+        mysql-image:
+          - mariadb:10.2
+          - mariadb:10.3
+          - mariadb:10.4
+          - mariadb:latest
+          - mysql:5.7
+          - mysql:latest
+        include:
+          - python-version: 3.6
+            mysql-image: mariadb:10.2
+          - python-version: 3.6
+            mysql-image: mysql:5.7
+
+    services:
+      mysql:
+        image: ${{ matrix.mysql-image }}
+        env:
+          MYSQL_ROOT_PASSWORD: mysql
+          MYSQL_DATABASE: mysql
+        options: >-
+          --health-cmd "mysqladmin ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 3306:3306
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install tox tox-gh-actions
+    - name: Test with tox
+      run: tox
+      env:
+        DB_BACKEND: mysql
+        DB_NAME: mysql
+        DB_USER: root
+        DB_PASSWORD: mysql
+        DB_HOST: 127.0.0.1
+        DB_PORT: 3306
+
+  oracle:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6, 3.8]
+        oracle-version: [12c]
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Download Oracle Database setup script
+      run: |
+        mkdir oracle-scripts && cd oracle-scripts
+        wget https://gist.github.com/laymonage/b40c032770adbae53b1b6029655f792f/raw/e7aed2dcfb16612b5488c252bfb4911ab5f8c2a0/01_create_user.sql
+    - name: Run Oracle Database Docker image
+      run: |
+        docker pull quay.io/maksymbilenko/oracle-12c
+        docker run --name oracle -d -p 1521:1521 -v `pwd`/oracle-scripts:/docker-entrypoint-initdb.d quay.io/maksymbilenko/oracle-12c
+    - name: Install Oracle Instant Client
+      run: |
+        sudo apt update && sudo apt install alien
+        wget https://download.oracle.com/otn_software/linux/instantclient/oracle-instantclient-basiclite-linuxx64.rpm
+        sudo alien -i oracle-instantclient-basiclite-linuxx64.rpm
+    - name: Wait for Oracle Database to finish setup
+      run: |
+        until docker logs oracle | grep "Database ready to use."; do echo "Waiting..." && sleep 5; done
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install tox tox-gh-actions
+    - name: Test with tox
+      run: tox
+      env:
+        DB_BACKEND: oracle
+        DB_NAME: localhost/xe
+        DB_USER: django
+        DB_PASSWORD: django
+
+  postgres:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8]
+        postgres-image:
+          - postgres:9.5
+          - postgres:10
+          - postgres:11
+          - postgres:latest
+        include:
+          - python-version: 3.6
+            postgres-image: postgres:9.5
+    services:
+      postgres:
+        image: ${{ matrix.postgres-image }}
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install tox tox-gh-actions
+    - name: Test with tox
+      run: tox
+      env:
+        DB_BACKEND: postgresql
+        DB_NAME: postgres
+        DB_USER: postgres
+        DB_PASSWORD: postgres
+        DB_HOST: localhost
+        DB_PORT: 5432
+
+  sqlite:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8]
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install tox tox-gh-actions
+    - name: Test with tox
+      run: tox
+      env:
+        DB_BACKEND: sqlite3
+        DB_NAME: ":memory:"
