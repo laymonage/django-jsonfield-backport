@@ -116,14 +116,13 @@ class JSONField(CheckFieldDefaultMixin, Field):
         return None
 
     def db_type(self, connection):
-        if connection.vendor == "mysql":
-            return "json"
-        if connection.vendor == "oracle":
-            return "nclob"
-        if connection.vendor == "postgresql":
-            return "jsonb"
-        if connection.vendor == "sqlite":
-            return "text"
+        db_types = {
+            "mysql": "json",
+            "oracle": "nclob",
+            "postgresql": "jsonb",
+            "sqlite": "text",
+        }
+        return db_types[connection.vendor]
 
     def get_db_converters(self, connection):
         if connection.vendor == "oracle":
@@ -142,7 +141,7 @@ class JSONField(CheckFieldDefaultMixin, Field):
         return KeyTransformFactory(name)
 
     def select_format(self, compiler, sql, params):
-        if features[compiler.connection.vendor].has_native_json_field and self.decoder is not None:
+        if self.decoder is not None:
             if compiler.connection.vendor == "postgresql":
                 return "(%s)::text" % sql, params
         return super().select_format(compiler, sql, params)

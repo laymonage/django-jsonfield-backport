@@ -3,9 +3,17 @@ import uuid
 from unittest import mock, skipIf, skipUnless
 
 from django.core import serializers
+from django.core.checks import Error, Warning as DjangoWarning
 from django.core.exceptions import ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db import DataError, IntegrityError, NotSupportedError, OperationalError, connection
+from django.db import (
+    DataError,
+    IntegrityError,
+    NotSupportedError,
+    OperationalError,
+    connection,
+    models,
+)
 from django.db.models import Count, F, OuterRef, Q, Subquery, Transform, Value
 from django.db.models.expressions import RawSQL
 from django.test import SimpleTestCase, TestCase
@@ -84,6 +92,44 @@ class TestMethods(SimpleTestCase):
 
 
 class TestValidation(SimpleTestCase):
+    databases = {"default"}
+
+    def test_invalid_default(self):
+        class InvalidDefaultModel(models.Model):
+            field = JSONField(default={})
+
+        self.assertEqual(
+            InvalidDefaultModel._meta.get_field("field").check(),
+            [
+                DjangoWarning(
+                    msg=(
+                        "JSONField default should be a callable instead of an instance "
+                        "so that it's not shared between all field instances."
+                    ),
+                    hint="Use a callable instead, e.g., use `dict` instead of `{}`.",
+                    obj=InvalidDefaultModel._meta.get_field("field"),
+                    id="fields.E010",
+                )
+            ],
+        )
+
+    def test_check_jsonfield(self):
+        error = Error(
+            "%s does not support JSONFields." % connection.display_name,
+            obj=JSONModel,
+            id="fields.E180",
+        )
+        self.assertEqual(JSONModel.check(databases=self.databases), [])
+        original_feature = features[connection.vendor].supports_json_field
+        features[connection.vendor].supports_json_field = False
+
+        class UnallowedModel(models.Model):
+            field = JSONField()
+
+        self.assertEqual(UnallowedModel.check(databases=self.databases), [])
+        self.assertEqual(JSONModel.check(databases=self.databases), [error])
+        features[connection.vendor].supports_json_field = original_feature
+
     def test_invalid_encoder(self):
         msg = "The encoder parameter must be a callable object."
         with self.assertRaisesMessage(ValueError, msg):
@@ -495,6 +541,12 @@ class TestQuerying(TestCase):
     def test_none_key(self):
         self.assertSequenceEqual(
             NullableJSONModel.objects.filter(value__j=None), [self.objs[4]],
+        )
+
+    def test_none_deep(self):
+        obj = NullableJSONModel.objects.create(value={"foo": {"bar": None}})
+        self.assertSequenceEqual(
+            NullableJSONModel.objects.filter(value__foo__bar=None), [obj],
         )
 
     def test_none_key_exclude(self):

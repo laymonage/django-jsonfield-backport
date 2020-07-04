@@ -1,6 +1,5 @@
 import functools
 import json
-import operator
 
 from django.core.exceptions import ImproperlyConfigured
 from django.db import transaction

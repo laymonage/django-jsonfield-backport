@@ -23,6 +23,7 @@ DATABASES = {
         },
     },
 }
+DATABASE_ROUTERS = ["tests.models.MyRouter"]
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
