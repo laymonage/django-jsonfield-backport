@@ -5,34 +5,31 @@ from django.db import NotSupportedError, connections, router
 from django.db.models import lookups
 from django.db.models.fields import Field
 from django.db.models.functions import Cast
-from django.db.models.lookups import (
-    FieldGetDbPrepValueMixin, Lookup, Transform,
-)
+from django.db.models.lookups import FieldGetDbPrepValueMixin, Lookup, Transform
 from django.utils.translation import gettext_lazy as _
 
 from . import forms
 from .features import features
 
-__all__ = ['JSONField']
+__all__ = ["JSONField"]
 
 
 class CheckFieldDefaultMixin:
-    _default_hint = ('<valid default>', '<invalid default>')
+    _default_hint = ("<valid default>", "<invalid default>")
 
     def _check_default(self):
         if self.has_default() and self.default is not None and not callable(self.default):
             return [
                 checks.Warning(
                     "%s default should be a callable instead of an instance "
-                    "so that it's not shared between all field instances." % (
-                        self.__class__.__name__,
-                    ),
+                    "so that it's not shared between all field instances."
+                    % (self.__class__.__name__,),
                     hint=(
-                        'Use a callable instead, e.g., use `%s` instead of '
-                        '`%s`.' % self._default_hint
+                        "Use a callable instead, e.g., use `%s` instead of "
+                        "`%s`." % self._default_hint
                     ),
                     obj=self,
-                    id='fields.E010',
+                    id="fields.E010",
                 )
             ]
         else:
@@ -46,27 +43,26 @@ class CheckFieldDefaultMixin:
 
 class JSONField(CheckFieldDefaultMixin, Field):
     empty_strings_allowed = False
-    description = _('A JSON object')
+    description = _("A JSON object")
     default_error_messages = {
-        'invalid': _('Value must be valid JSON.'),
+        "invalid": _("Value must be valid JSON."),
     }
-    _default_hint = ('dict', '{}')
+    _default_hint = ("dict", "{}")
 
     def __init__(
-        self, verbose_name=None, name=None, encoder=None, decoder=None,
-        **kwargs,
+        self, verbose_name=None, name=None, encoder=None, decoder=None, **kwargs,
     ):
         if encoder and not callable(encoder):
-            raise ValueError('The encoder parameter must be a callable object.')
+            raise ValueError("The encoder parameter must be a callable object.")
         if decoder and not callable(decoder):
-            raise ValueError('The decoder parameter must be a callable object.')
+            raise ValueError("The decoder parameter must be a callable object.")
         self.encoder = encoder
         self.decoder = decoder
         super().__init__(verbose_name, name, **kwargs)
 
     def check(self, **kwargs):
         errors = super().check(**kwargs)
-        databases = kwargs.get('databases') or []
+        databases = kwargs.get("databases") or []
         errors.extend(self._check_supported(databases))
         return errors
 
@@ -77,15 +73,14 @@ class JSONField(CheckFieldDefaultMixin, Field):
                 continue
             connection = connections[db]
             if not (
-                'supports_json_field' in self.model._meta.required_db_features or
-                features[connection.vendor].supports_json_field
+                "supports_json_field" in self.model._meta.required_db_features
+                or features[connection.vendor].supports_json_field
             ):
                 errors.append(
                     checks.Error(
-                        '%s does not support JSONFields.'
-                        % connection.display_name,
+                        "%s does not support JSONFields." % connection.display_name,
                         obj=self.model,
-                        id='fields.E180',
+                        id="fields.E180",
                     )
                 )
         return errors
@@ -93,9 +88,9 @@ class JSONField(CheckFieldDefaultMixin, Field):
     def deconstruct(self):
         name, path, args, kwargs = super().deconstruct()
         if self.encoder is not None:
-            kwargs['encoder'] = self.encoder
+            kwargs["encoder"] = self.encoder
         if self.decoder is not None:
-            kwargs['decoder'] = self.decoder
+            kwargs["decoder"] = self.decoder
         return name, path, args, kwargs
 
     def from_db_value(self, value, expression, connection):
@@ -111,27 +106,27 @@ class JSONField(CheckFieldDefaultMixin, Field):
     def db_check(self, connection):
         if features[connection.vendor].supports_column_check_constraints:
             data = self.db_type_parameters(connection)
-            if connection.vendor == 'mysql':
-                if connection.mysql_is_mariadb and connection.mysql_version < (10, 4, 3):
-                    return 'JSON_VALID(`%(column)s`)' % data
-            if connection.vendor == 'oracle':
-                return '%(qn_column)s IS JSON' % data
-            if connection.vendor == 'sqlite':
+            if connection.vendor == "mysql":
+                if connection.mysql_is_mariadb and connection.mysql_version < (10, 4, 3,):
+                    return "JSON_VALID(`%(column)s`)" % data
+            if connection.vendor == "oracle":
+                return "%(qn_column)s IS JSON" % data
+            if connection.vendor == "sqlite":
                 return '(JSON_VALID("%(column)s") OR "%(column)s" IS NULL)' % data
         return None
 
     def db_type(self, connection):
-        if connection.vendor == 'mysql':
-            return 'json'
-        if connection.vendor == 'oracle':
-            return 'nclob'
-        if connection.vendor == 'postgresql':
-            return 'jsonb'
-        if connection.vendor == 'sqlite':
-            return 'text'
+        if connection.vendor == "mysql":
+            return "json"
+        if connection.vendor == "oracle":
+            return "nclob"
+        if connection.vendor == "postgresql":
+            return "jsonb"
+        if connection.vendor == "sqlite":
+            return "text"
 
     def get_db_converters(self, connection):
-        if connection.vendor == 'oracle':
+        if connection.vendor == "oracle":
             return [connection.ops.convert_textfield_value] + super().get_db_converters(connection)
         return super().get_db_converters(connection)
 
@@ -147,12 +142,9 @@ class JSONField(CheckFieldDefaultMixin, Field):
         return KeyTransformFactory(name)
 
     def select_format(self, compiler, sql, params):
-        if (
-            features[compiler.connection.vendor].has_native_json_field and
-            self.decoder is not None
-        ):
-            if compiler.connection.vendor == 'postgresql':
-                return '(%s)::text' % sql, params
+        if features[compiler.connection.vendor].has_native_json_field and self.decoder is not None:
+            if compiler.connection.vendor == "postgresql":
+                return "(%s)::text" % sql, params
         return super().select_format(compiler, sql, params)
 
     def validate(self, value, model_instance):
@@ -161,21 +153,21 @@ class JSONField(CheckFieldDefaultMixin, Field):
             json.dumps(value, cls=self.encoder)
         except TypeError:
             raise exceptions.ValidationError(
-                self.error_messages['invalid'],
-                code='invalid',
-                params={'value': value},
+                self.error_messages["invalid"], code="invalid", params={"value": value},
             )
 
     def value_to_string(self, obj):
         return self.value_from_object(obj)
 
     def formfield(self, **kwargs):
-        return super().formfield(**{
-            'form_class': forms.JSONField,
-            'encoder': self.encoder,
-            'decoder': self.decoder,
-            **kwargs,
-        })
+        return super().formfield(
+            **{
+                "form_class": forms.JSONField,
+                "encoder": self.encoder,
+                "decoder": self.decoder,
+                **kwargs,
+            }
+        )
 
 
 class JSONCast(Cast):
@@ -191,72 +183,74 @@ class JSONCast(Cast):
 
 
 def compile_json_path(key_transforms, include_root=True):
-    path = ['$'] if include_root else []
+    path = ["$"] if include_root else []
     for key_transform in key_transforms:
         try:
             num = int(key_transform)
         except ValueError:  # non-integer
-            path.append('.')
+            path.append(".")
             path.append(json.dumps(key_transform))
         else:
-            path.append('[%s]' % num)
-    return ''.join(path)
+            path.append("[%s]" % num)
+    return "".join(path)
 
 
 class PostgresOperatorLookup(FieldGetDbPrepValueMixin, Lookup):
     """Lookup defined by operators on PostgreSQL."""
+
     postgres_operator = None
 
     def as_postgresql(self, compiler, connection):
         lhs, lhs_params = self.process_lhs(compiler, connection)
         rhs, rhs_params = self.process_rhs(compiler, connection)
         params = tuple(lhs_params) + tuple(rhs_params)
-        return '%s %s %s' % (lhs, self.postgres_operator, rhs), params
+        return "%s %s %s" % (lhs, self.postgres_operator, rhs), params
 
 
 class DataContains(PostgresOperatorLookup):
-    lookup_name = 'contains'
-    postgres_operator = '@>'
+    lookup_name = "contains"
+    postgres_operator = "@>"
 
     def as_sql(self, compiler, connection):
         lhs, lhs_params = self.process_lhs(compiler, connection)
         rhs, rhs_params = self.process_rhs(compiler, connection)
         params = tuple(lhs_params) + tuple(rhs_params)
-        return 'JSON_CONTAINS(%s, %s)' % (lhs, rhs), params
+        return "JSON_CONTAINS(%s, %s)" % (lhs, rhs), params
 
     def as_oracle(self, compiler, connection):
         if isinstance(self.rhs, KeyTransform):
             return HasKey(self.lhs, self.rhs).as_oracle(compiler, connection)
         lhs, lhs_params = self.process_lhs(compiler, connection)
         params = tuple(lhs_params)
-        sql = (
-            "JSON_QUERY(%s, '$%s' WITH WRAPPER) = "
-            "JSON_QUERY('%s', '$.value' WITH WRAPPER)"
-        )
+        sql = "JSON_QUERY(%s, '$%s' WITH WRAPPER) = " "JSON_QUERY('%s', '$.value' WITH WRAPPER)"
         rhs = json.loads(self.rhs)
         if isinstance(rhs, dict):
             if not rhs:
                 return "DBMS_LOB.SUBSTR(%s) LIKE '{%%%%}'" % lhs, params
-            return ' AND '.join([
-                sql % (
-                    lhs, '.%s' % json.dumps(key), json.dumps({'value': value}),
-                ) for key, value in rhs.items()
-            ]), params
-        return sql % (lhs, '', json.dumps({'value': rhs})), params
+            return (
+                " AND ".join(
+                    [
+                        sql % (lhs, ".%s" % json.dumps(key), json.dumps({"value": value}),)
+                        for key, value in rhs.items()
+                    ]
+                ),
+                params,
+            )
+        return sql % (lhs, "", json.dumps({"value": rhs})), params
 
 
 class ContainedBy(PostgresOperatorLookup):
-    lookup_name = 'contained_by'
-    postgres_operator = '<@'
+    lookup_name = "contained_by"
+    postgres_operator = "<@"
 
     def as_sql(self, compiler, connection):
         lhs, lhs_params = self.process_lhs(compiler, connection)
         rhs, rhs_params = self.process_rhs(compiler, connection)
         params = tuple(rhs_params) + tuple(lhs_params)
-        return 'JSON_CONTAINS(%s, %s)' % (rhs, lhs), params
+        return "JSON_CONTAINS(%s, %s)" % (rhs, lhs), params
 
     def as_oracle(self, compiler, connection):
-        raise NotSupportedError('contained_by lookup is not supported on Oracle.')
+        raise NotSupportedError("contained_by lookup is not supported on Oracle.")
 
 
 class HasKeyLookup(PostgresOperatorLookup):
@@ -269,7 +263,7 @@ class HasKeyLookup(PostgresOperatorLookup):
             lhs_json_path = compile_json_path(lhs_key_transforms)
         else:
             lhs, lhs_params = self.process_lhs(compiler, connection)
-            lhs_json_path = '$'
+            lhs_json_path = "$"
         sql = template % lhs
         # Process JSON path from the right-hand side.
         rhs = self.rhs
@@ -281,13 +275,13 @@ class HasKeyLookup(PostgresOperatorLookup):
                 *_, rhs_key_transforms = key.preprocess_lhs(compiler, connection)
             else:
                 rhs_key_transforms = [key]
-            rhs_params.append('%s%s' % (
-                lhs_json_path,
-                compile_json_path(rhs_key_transforms, include_root=False),
-            ))
+            rhs_params.append(
+                "%s%s"
+                % (lhs_json_path, compile_json_path(rhs_key_transforms, include_root=False),)
+            )
         # Add condition for each key.
         if self.logical_operator:
-            sql = '(%s)' % self.logical_operator.join([sql] * len(rhs_params))
+            sql = "(%s)" % self.logical_operator.join([sql] * len(rhs_params))
         return sql, tuple(lhs_params) + tuple(rhs_params)
 
     def as_mysql(self, compiler, connection):
@@ -308,28 +302,28 @@ class HasKeyLookup(PostgresOperatorLookup):
         return super().as_postgresql(compiler, connection)
 
     def as_sqlite(self, compiler, connection):
-        return self.as_sql(compiler, connection, template='JSON_TYPE(%s, %%s) IS NOT NULL')
+        return self.as_sql(compiler, connection, template="JSON_TYPE(%s, %%s) IS NOT NULL")
 
 
 class HasKey(HasKeyLookup):
-    lookup_name = 'has_key'
-    postgres_operator = '?'
+    lookup_name = "has_key"
+    postgres_operator = "?"
     prepare_rhs = False
 
 
 class HasKeys(HasKeyLookup):
-    lookup_name = 'has_keys'
-    postgres_operator = '?&'
-    logical_operator = ' AND '
+    lookup_name = "has_keys"
+    postgres_operator = "?&"
+    logical_operator = " AND "
 
     def get_prep_lookup(self):
         return [str(item) for item in self.rhs]
 
 
 class HasAnyKeys(HasKeys):
-    lookup_name = 'has_any_keys'
-    postgres_operator = '?|'
-    logical_operator = ' OR '
+    lookup_name = "has_any_keys"
+    postgres_operator = "?|"
+    logical_operator = " OR "
 
 
 class JSONExact(lookups.Exact):
@@ -337,21 +331,21 @@ class JSONExact(lookups.Exact):
 
     def process_lhs(self, compiler, connection):
         lhs, lhs_params = super().process_lhs(compiler, connection)
-        if connection.vendor == 'sqlite':
+        if connection.vendor == "sqlite":
             rhs, rhs_params = super().process_rhs(compiler, connection)
-            if rhs == '%s' and rhs_params == [None]:
+            if rhs == "%s" and rhs_params == [None]:
                 # Use JSON_TYPE instead of JSON_EXTRACT for NULLs.
                 lhs = "JSON_TYPE(%s, '$')" % lhs
-        elif connection.vendor == 'oracle':
-            lhs = 'DBMS_LOB.SUBSTR(%s)' % lhs
+        elif connection.vendor == "oracle":
+            lhs = "DBMS_LOB.SUBSTR(%s)" % lhs
         return lhs, lhs_params
 
     def process_rhs(self, compiler, connection):
         rhs, rhs_params = super().process_rhs(compiler, connection)
         # Treat None lookup values as null.
-        if rhs == '%s' and rhs_params == [None]:
-            rhs_params = ['null']
-        if connection.vendor == 'mysql':
+        if rhs == "%s" and rhs_params == [None]:
+            rhs_params = ["null"]
+        if connection.vendor == "mysql":
             func = ["JSON_EXTRACT(%s, '$')"] * len(rhs_params)
             rhs = rhs % tuple(func)
         return rhs, rhs_params
@@ -366,8 +360,8 @@ JSONField.register_lookup(JSONExact)
 
 
 class KeyTransform(Transform):
-    postgres_operator = '->'
-    postgres_nested_operator = '#>'
+    postgres_operator = "->"
+    postgres_nested_operator = "#>"
 
     def __init__(self, key_name, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -382,43 +376,46 @@ class KeyTransform(Transform):
                 key_transforms.insert(0, previous.key_name)
             previous = previous.lhs
         lhs, params = compiler.compile(previous)
-        if connection.vendor == 'oracle':
+        if connection.vendor == "oracle":
             # Escape string-formatting.
-            key_transforms = [key.replace('%', '%%') for key in key_transforms]
+            key_transforms = [key.replace("%", "%%") for key in key_transforms]
         return (lhs, params, key_transforms) if not lhs_only else (lhs, params)
 
     def as_mysql(self, compiler, connection):
         lhs, params, key_transforms = self.preprocess_lhs(compiler, connection)
         json_path = compile_json_path(key_transforms)
-        return 'JSON_EXTRACT(%s, %%s)' % lhs, tuple(params) + (json_path,)
+        return "JSON_EXTRACT(%s, %%s)" % lhs, tuple(params) + (json_path,)
 
     def as_oracle(self, compiler, connection):
         lhs, params, key_transforms = self.preprocess_lhs(compiler, connection)
         json_path = compile_json_path(key_transforms)
         return (
-            "COALESCE(JSON_QUERY(%s, '%s'), JSON_VALUE(%s, '%s'))" %
-            ((lhs, json_path) * 2)
-        ), tuple(params) * 2
+            ("COALESCE(JSON_QUERY(%s, '%s'), JSON_VALUE(%s, '%s'))" % ((lhs, json_path) * 2)),
+            tuple(params) * 2,
+        )
 
     def as_postgresql(self, compiler, connection):
         lhs, params, key_transforms = self.preprocess_lhs(compiler, connection)
         if len(key_transforms) > 1:
-            return '(%s %s %%s)' % (lhs, self.postgres_nested_operator), params + [key_transforms]
+            return (
+                "(%s %s %%s)" % (lhs, self.postgres_nested_operator),
+                params + [key_transforms],
+            )
         try:
             lookup = int(self.key_name)
         except ValueError:
             lookup = self.key_name
-        return '(%s %s %%s)' % (lhs, self.postgres_operator), tuple(params) + (lookup,)
+        return "(%s %s %%s)" % (lhs, self.postgres_operator), tuple(params) + (lookup,)
 
     def as_sqlite(self, compiler, connection):
         lhs, params, key_transforms = self.preprocess_lhs(compiler, connection)
         json_path = compile_json_path(key_transforms)
-        return 'JSON_EXTRACT(%s, %%s)' % lhs, tuple(params) + (json_path,)
+        return "JSON_EXTRACT(%s, %%s)" % lhs, tuple(params) + (json_path,)
 
 
 class KeyTextTransform(KeyTransform):
-    postgres_operator = '->>'
-    postgres_nested_operator = '#>>'
+    postgres_operator = "->>"
+    postgres_nested_operator = "#>>"
 
 
 class KeyTransformTextLookupMixin:
@@ -428,21 +425,20 @@ class KeyTransformTextLookupMixin:
     key values to text and performing the lookup on the resulting
     representation.
     """
+
     def process_lhs(self, compiler, connection):
         lhs, lhs_params = super().process_lhs(compiler, connection)
-        if connection.vendor == 'mysql':
-            return 'JSON_UNQUOTE(%s)' % lhs, lhs_params
+        if connection.vendor == "mysql":
+            return "JSON_UNQUOTE(%s)" % lhs, lhs_params
         return lhs, lhs_params
 
     def __init__(self, key_transform, *args, **kwargs):
         if not isinstance(key_transform, KeyTransform):
             raise TypeError(
-                'Transform should be an instance of KeyTransform in order to '
-                'use this lookup.'
+                "Transform should be an instance of KeyTransform in order to " "use this lookup."
             )
         key_text_transform = KeyTextTransform(
-            key_transform.key_name, *key_transform.source_expressions,
-            **key_transform.extra,
+            key_transform.key_name, *key_transform.source_expressions, **key_transform.extra,
         )
         super().__init__(key_text_transform, *args, **kwargs)
 
@@ -454,16 +450,17 @@ class CaseInsensitiveMixin:
     Because utf8mb4_bin is a binary collation, comparison of JSON values is
     case-sensitive.
     """
+
     def process_lhs(self, compiler, connection):
         lhs, lhs_params = super().process_lhs(compiler, connection)
-        if connection.vendor == 'mysql':
-            return 'LOWER(%s)' % lhs, lhs_params
+        if connection.vendor == "mysql":
+            return "LOWER(%s)" % lhs, lhs_params
         return lhs, lhs_params
 
     def process_rhs(self, compiler, connection):
         rhs, rhs_params = super().process_rhs(compiler, connection)
-        if connection.vendor == 'mysql':
-            return 'LOWER(%s)' % rhs, rhs_params
+        if connection.vendor == "mysql":
+            return "LOWER(%s)" % rhs, rhs_params
         return rhs, rhs_params
 
 
@@ -483,45 +480,42 @@ class KeyTransformIsNull(lookups.IsNull):
 class KeyTransformExact(JSONExact):
     def process_lhs(self, compiler, connection):
         lhs, lhs_params = super().process_lhs(compiler, connection)
-        if connection.vendor == 'sqlite':
+        if connection.vendor == "sqlite":
             rhs, rhs_params = super().process_rhs(compiler, connection)
-            if rhs == '%s' and rhs_params == ['null']:
+            if rhs == "%s" and rhs_params == ["null"]:
                 lhs, _ = self.lhs.preprocess_lhs(compiler, connection, lhs_only=True)
-                lhs = 'JSON_TYPE(%s, %%s)' % lhs
-        elif connection.vendor == 'mysql' and connection.mysql_is_mariadb:
-            lhs = 'JSON_UNQUOTE(%s)' % lhs
+                lhs = "JSON_TYPE(%s, %%s)" % lhs
+        elif connection.vendor == "mysql" and connection.mysql_is_mariadb:
+            lhs = "JSON_UNQUOTE(%s)" % lhs
         return lhs, lhs_params
 
     def process_rhs(self, compiler, connection):
         if isinstance(self.rhs, KeyTransform):
             return super(lookups.Exact, self).process_rhs(compiler, connection)
         rhs, rhs_params = super().process_rhs(compiler, connection)
-        if connection.vendor == 'oracle':
+        if connection.vendor == "oracle":
             func = []
             for value in rhs_params:
                 value = json.loads(value)
-                function = 'JSON_QUERY' if isinstance(value, (list, dict)) else 'JSON_VALUE'
-                func.append("%s('%s', '$.value')" % (
-                    function,
-                    json.dumps({'value': value}),
-                ))
+                function = "JSON_QUERY" if isinstance(value, (list, dict)) else "JSON_VALUE"
+                func.append("%s('%s', '$.value')" % (function, json.dumps({"value": value}),))
             rhs = rhs % tuple(func)
             rhs_params = []
-        elif connection.vendor == 'sqlite':
-            func = ["JSON_EXTRACT(%s, '$')" if value != 'null' else '%s' for value in rhs_params]
+        elif connection.vendor == "sqlite":
+            func = ["JSON_EXTRACT(%s, '$')" if value != "null" else "%s" for value in rhs_params]
             rhs = rhs % tuple(func)
         return rhs, rhs_params
 
     def as_oracle(self, compiler, connection):
         rhs, rhs_params = super().process_rhs(compiler, connection)
-        if rhs_params == ['null']:
+        if rhs_params == ["null"]:
             # Field has key and it's NULL.
             has_key_expr = HasKey(self.lhs.lhs, self.lhs.key_name)
             has_key_sql, has_key_params = has_key_expr.as_oracle(compiler, connection)
-            is_null_expr = self.lhs.get_lookup('isnull')(self.lhs, True)
+            is_null_expr = self.lhs.get_lookup("isnull")(self.lhs, True)
             is_null_sql, is_null_params = is_null_expr.as_sql(compiler, connection)
             return (
-                '%s AND %s' % (has_key_sql, is_null_sql),
+                "%s AND %s" % (has_key_sql, is_null_sql),
                 tuple(has_key_params) + tuple(is_null_params),
             )
         return super().as_sql(compiler, connection)
@@ -543,7 +537,9 @@ class KeyTransformStartsWith(KeyTransformTextLookupMixin, lookups.StartsWith):
     pass
 
 
-class KeyTransformIStartsWith(CaseInsensitiveMixin, KeyTransformTextLookupMixin, lookups.IStartsWith):
+class KeyTransformIStartsWith(
+    CaseInsensitiveMixin, KeyTransformTextLookupMixin, lookups.IStartsWith
+):
     pass
 
 
@@ -606,7 +602,6 @@ KeyTransform.register_lookup(KeyTransformGte)
 
 
 class KeyTransformFactory:
-
     def __init__(self, key_name):
         self.key_name = key_name
 
