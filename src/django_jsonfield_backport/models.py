@@ -5,7 +5,9 @@ from django.db import NotSupportedError, connections, router
 from django.db.models import lookups
 from django.db.models.fields import Field
 from django.db.models.functions import Cast
-from django.db.models.lookups import FieldGetDbPrepValueMixin, Lookup, Transform
+from django.db.models.lookups import (
+    FieldGetDbPrepValueMixin, Lookup, Transform,
+)
 from django.utils.translation import gettext_lazy as _
 
 from . import forms

@@ -6,25 +6,32 @@ from django.core.exceptions import ImproperlyConfigured
 from django.db import transaction
 from django.db.backends.base.features import BaseDatabaseFeatures
 from django.db.backends.signals import connection_created
-from django.db.backends.sqlite3.base import DatabaseFeatures as BaseSQLiteFeatures
-from django.db.backends.sqlite3.base import none_guard
+from django.db.backends.sqlite3.base import (
+    DatabaseFeatures as BaseSQLiteFeatures, none_guard,
+)
 from django.db.utils import OperationalError
 from django.dispatch import receiver
 from django.utils.functional import cached_property
 from django.utils.version import PY38
 
 try:
-    from django.db.backends.mysql.base import DatabaseFeatures as BaseMySQLFeatures
+    from django.db.backends.mysql.base import (
+        DatabaseFeatures as BaseMySQLFeatures,
+    )
 except ImproperlyConfigured:
     BaseMySQLFeatures = BaseDatabaseFeatures
 
 try:
-    from django.db.backends.oracle.base import DatabaseFeatures as BaseOracleFeatures
+    from django.db.backends.oracle.base import (
+        DatabaseFeatures as BaseOracleFeatures,
+    )
 except ImproperlyConfigured:
     BaseOracleFeatures = BaseDatabaseFeatures
 
 try:
-    from django.db.backends.postgresql.base import DatabaseFeatures as BasePostgresFeatures
+    from django.db.backends.postgresql.base import (
+        DatabaseFeatures as BasePostgresFeatures,
+    )
 except ImproperlyConfigured:
     BasePostgresFeatures = BaseDatabaseFeatures
 

@@ -2,9 +2,7 @@ import json
 import uuid
 
 from django.core.serializers.json import DjangoJSONEncoder
-from django.forms import (
-    CharField, Form, Textarea, TextInput, ValidationError,
-)
+from django.forms import CharField, Form, Textarea, TextInput, ValidationError
 from django.test import SimpleTestCase
 
 from django_jsonfield_backport.forms import JSONField

@@ -2,6 +2,7 @@
 
 import django.core.serializers.json
 from django.db import migrations, models
+
 import django_jsonfield_backport.models
 import tests.models
 
@@ -26,7 +27,11 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('value', django_jsonfield_backport.models.JSONField(blank=True, null=True)),
-                ('value_custom', django_jsonfield_backport.models.JSONField(decoder=tests.models.CustomJSONDecoder, encoder=django.core.serializers.json.DjangoJSONEncoder, null=True)),
+                ('value_custom', django_jsonfield_backport.models.JSONField(
+                    decoder=tests.models.CustomJSONDecoder,
+                    encoder=django.core.serializers.json.DjangoJSONEncoder,
+                    null=True
+                )),
             ],
         ),
     ]

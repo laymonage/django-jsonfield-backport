@@ -7,19 +7,17 @@ from django.core.exceptions import ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import (
     DataError, IntegrityError, NotSupportedError, OperationalError, connection,
-    models,
 )
 from django.db.models import Count, F, OuterRef, Q, Subquery, Transform, Value
 from django.db.models.expressions import RawSQL
-from django.db.models.functions import Cast
 from django.test import SimpleTestCase, TestCase
 from django.test.utils import CaptureQueriesContext
 
 from django_jsonfield_backport import forms
 from django_jsonfield_backport.features import features
 from django_jsonfield_backport.models import (
-    KeyTextTransform, KeyTransform, KeyTransformFactory,
-    KeyTransformTextLookupMixin, JSONField, JSONCast
+    JSONCast, JSONField, KeyTextTransform, KeyTransform, KeyTransformFactory,
+    KeyTransformTextLookupMixin,
 )
 
 from .models import CustomJSONDecoder, JSONModel, NullableJSONModel
