@@ -104,15 +104,14 @@ class JSONField(CheckFieldDefaultMixin, Field):
             return value
 
     def db_check(self, connection):
-        if features[connection.vendor].supports_column_check_constraints:
-            data = self.db_type_parameters(connection)
-            if connection.vendor == "mysql":
-                if connection.mysql_is_mariadb and connection.mysql_version < (10, 4, 3,):
-                    return "JSON_VALID(`%(column)s`)" % data
-            if connection.vendor == "oracle":
-                return "%(qn_column)s IS JSON" % data
-            if connection.vendor == "sqlite":
-                return '(JSON_VALID("%(column)s") OR "%(column)s" IS NULL)' % data
+        data = self.db_type_parameters(connection)
+        if connection.vendor == "mysql":
+            if connection.mysql_is_mariadb and connection.mysql_version < (10, 4, 3,):
+                return "JSON_VALID(`%(column)s`)" % data
+        if connection.vendor == "oracle":
+            return "%(qn_column)s IS JSON" % data
+        if connection.vendor == "sqlite":
+            return '(JSON_VALID("%(column)s") OR "%(column)s" IS NULL)' % data
         return None
 
     def db_type(self, connection):

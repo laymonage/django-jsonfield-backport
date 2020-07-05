@@ -29,12 +29,6 @@ except ImproperlyConfigured:
 
 class MySQLFeatures(BaseMySQLFeatures):
     @cached_property
-    def supports_column_check_constraints(self):
-        if self.connection.mysql_is_mariadb:
-            return self.connection.mysql_version >= (10, 2, 1)
-        return self.connection.mysql_version >= (8, 0, 16)
-
-    @cached_property
     def supports_json_field(self):
         if self.connection.mysql_is_mariadb:
             return self.connection.mysql_version >= (10, 2, 7)
