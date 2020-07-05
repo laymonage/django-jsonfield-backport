@@ -1,14 +1,13 @@
 """
 Form field classes.
 """
-
 import json
 
 from django.core.exceptions import ValidationError
 from django.forms import CharField, Textarea
 from django.utils.translation import gettext_lazy as _
 
-__all__ = ('JSONField',)
+__all__ = ("JSONField",)
 
 
 class InvalidJSONInput(str):
@@ -21,7 +20,7 @@ class JSONString(str):
 
 class JSONField(CharField):
     default_error_messages = {
-        'invalid': _('Enter a valid JSON.'),
+        "invalid": _("Enter a valid JSON."),
     }
     widget = Textarea
 
@@ -41,9 +40,7 @@ class JSONField(CharField):
             converted = json.loads(value, cls=self.decoder)
         except json.JSONDecodeError:
             raise ValidationError(
-                self.error_messages['invalid'],
-                code='invalid',
-                params={'value': value},
+                self.error_messages["invalid"], code="invalid", params={"value": value},
             )
         if isinstance(converted, str):
             return JSONString(converted)
@@ -68,7 +65,6 @@ class JSONField(CharField):
             return True
         # For purposes of seeing whether something has changed, True isn't the
         # same as 1 and the order of keys doesn't matter.
-        return (
-            json.dumps(initial, sort_keys=True, cls=self.encoder) !=
-            json.dumps(self.to_python(data), sort_keys=True, cls=self.encoder)
+        return json.dumps(initial, sort_keys=True, cls=self.encoder) != json.dumps(
+            self.to_python(data), sort_keys=True, cls=self.encoder
         )
