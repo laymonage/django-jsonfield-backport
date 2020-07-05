@@ -9,6 +9,7 @@ jobs:
   mysql:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: [3.8]
         mysql-image:
@@ -66,6 +67,7 @@ jobs:
   oracle:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: [3.6, 3.8]
         oracle-version: [12c]
@@ -112,6 +114,7 @@ jobs:
   postgres:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: [3.8]
         postgres-image:
@@ -163,16 +166,18 @@ jobs:
   sqlite:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: [3.6, 3.7, 3.8, 3.9]
     steps:
     - uses: actions/checkout@v1
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python ${{ matrix.python-version }} from deadsnakes
       if: matrix.python-version == '3.9'
       uses: deadsnakes/action@v1.0.0
       with:
         python-version: ${{ matrix.python-version }}
-    - if: matrix.python-version != '3.9'
+    - name: Set up Python ${{ matrix.python-version }}
+      if: matrix.python-version != '3.9'
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
