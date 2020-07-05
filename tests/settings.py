@@ -10,7 +10,7 @@ INSTALLED_APPS = [
 
 DATABASES = {
     "default": {
-        "ENGINE": f"django.db.backends.{os.getenv('DB_BACKEND')}",
+        "ENGINE": "django.db.backends.%s" % os.getenv("DB_BACKEND"),
         "NAME": os.getenv("DB_NAME"),
         "USER": os.getenv("DB_USER"),
         "PASSWORD": os.getenv("DB_PASSWORD"),
