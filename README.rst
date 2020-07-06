@@ -61,7 +61,7 @@ Due to limited access to Django's APIs, some features are not supported.
 This package is fully compatible with the JSONField from Django 3.1. That
 means you just need to change your imports and edit your migrations when you
 finally upgrade to Django 3.1. If you leave them as they are, this package
-will use the built-in JSONField system warnings will be raised.
+will use the built-in JSONField and system warnings will be raised.
 
 Requirements
 ============
