@@ -361,7 +361,7 @@ class TestQuerying(TestCase):
         qs = NullableJSONModel.objects.filter(value__isnull=False)
         self.assertQuerysetEqual(
             qs.filter(value__isnull=False)
-            .annotate(key=KeyTextTransform("f", KeyTransform("1", KeyTransform("d", "value"))),)
+            .annotate(key=KeyTextTransform("f", KeyTransform("1", KeyTransform("d", "value"))))
             .values("key")
             .annotate(count=Count("key"))
             .order_by("count"),
@@ -433,8 +433,8 @@ class TestQuerying(TestCase):
     def test_has_key_deep(self):
         tests = [
             (Q(value__baz__has_key="a"), self.objs[7]),
-            (Q(value__has_key=KeyTransform("a", KeyTransform("baz", "value"))), self.objs[7],),
-            (Q(value__has_key=KeyTransform("c", KeyTransform("baz", "value"))), self.objs[7],),
+            (Q(value__has_key=KeyTransform("a", KeyTransform("baz", "value"))), self.objs[7]),
+            (Q(value__has_key=KeyTransform("c", KeyTransform("baz", "value"))), self.objs[7]),
             (Q(value__d__1__has_key="f"), self.objs[4]),
             (
                 Q(value__has_key=KeyTransform("f", KeyTransform("1", KeyTransform("d", "value")))),
@@ -702,10 +702,10 @@ class TestQuerying(TestCase):
                 (
                     "value__contained_by",
                     KeyTransform(
-                        "x", RawSQL(self.raw_sql, ['{"x": {"a": "b", "c": 1, "d": "e"}}'],),
+                        "x", RawSQL(self.raw_sql, ['{"x": {"a": "b", "c": 1, "d": "e"}}']),
                     ),
                 ),
             )
         for lookup, value in tests:
             with self.subTest(lookup=lookup):
-                self.assertIs(NullableJSONModel.objects.filter(**{lookup: value},).exists(), True)
+                self.assertIs(NullableJSONModel.objects.filter(**{lookup: value}).exists(), True)
