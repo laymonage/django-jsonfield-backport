@@ -25,6 +25,8 @@ DATABASES = {
 }
 DATABASE_ROUTERS = ["tests.models.MyRouter"]
 
+SILENCED_SYSTEM_CHECKS = ["django_jsonfield_backport.W001"]
+
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
