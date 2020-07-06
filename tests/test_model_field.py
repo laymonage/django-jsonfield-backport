@@ -2,6 +2,7 @@ import operator
 import uuid
 from unittest import mock, skipIf, skipUnless
 
+import django
 from django.core import serializers
 from django.core.checks import Error, Warning as DjangoWarning
 from django.core.exceptions import ValidationError
@@ -71,6 +72,7 @@ class TestMethods(SimpleTestCase):
         self.assertEqual(kwargs["encoder"], DjangoJSONEncoder)
         self.assertEqual(kwargs["decoder"], CustomJSONDecoder)
 
+    @skipIf(django.VERSION >= (3, 1), "Not applicable.")
     def test_get_transforms(self):
         @JSONField.register_lookup
         class MyTransform(Transform):
@@ -94,6 +96,7 @@ class TestMethods(SimpleTestCase):
 class TestValidation(SimpleTestCase):
     databases = {"default"}
 
+    @skipIf(django.VERSION >= (3, 1), "Not applicable.")
     def test_invalid_default(self):
         class InvalidDefaultModel(models.Model):
             field = JSONField(default={})
@@ -113,6 +116,7 @@ class TestValidation(SimpleTestCase):
             ],
         )
 
+    @skipIf(django.VERSION >= (3, 1), "Not applicable.")
     def test_check_jsonfield(self):
         error = Error(
             "%s does not support JSONFields." % connection.display_name,
@@ -154,6 +158,7 @@ class TestValidation(SimpleTestCase):
 
 
 class TestFormField(SimpleTestCase):
+    @skipIf(django.VERSION >= (3, 1), "Not applicable.")
     def test_formfield(self):
         model_field = JSONField()
         form_field = model_field.formfield()
