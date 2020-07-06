@@ -26,9 +26,9 @@ jobs:
           - mysql:5.7
           - mysql:latest
         include:
-          - python-version: 3.6
+          - python-version: 3.5
             mysql-image: mariadb:10.2
-          - python-version: 3.6
+          - python-version: 3.5
             mysql-image: mysql:5.7
 
     services:
@@ -75,7 +75,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.6, 3.8]
+        python-version: [3.5, 3.8]
         oracle-version: [12c]
     steps:
     - uses: actions/checkout@v1
@@ -129,7 +129,7 @@ jobs:
           - postgres:11
           - postgres:latest
         include:
-          - python-version: 3.6
+          - python-version: 3.5
             postgres-image: postgres:9.5
     services:
       postgres:
@@ -174,7 +174,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.5, 3.6, 3.7, 3.8, 3.9]
     steps:
     - uses: actions/checkout@v1
     - name: Set up Python ${{ matrix.python-version }} from deadsnakes

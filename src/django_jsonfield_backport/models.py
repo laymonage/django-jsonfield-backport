@@ -49,9 +49,7 @@ class JSONField(CheckFieldDefaultMixin, Field):
     }
     _default_hint = ("dict", "{}")
 
-    def __init__(
-        self, verbose_name=None, name=None, encoder=None, decoder=None, **kwargs,
-    ):
+    def __init__(self, verbose_name=None, name=None, encoder=None, decoder=None, **kwargs):
         if encoder and not callable(encoder):
             raise ValueError("The encoder parameter must be a callable object.")
         if decoder and not callable(decoder):
@@ -228,7 +226,7 @@ class DataContains(PostgresOperatorLookup):
             return (
                 " AND ".join(
                     [
-                        sql % (lhs, ".%s" % json.dumps(key), json.dumps({"value": value}),)
+                        sql % (lhs, ".%s" % json.dumps(key), json.dumps({"value": value}))
                         for key, value in rhs.items()
                     ]
                 ),
@@ -274,8 +272,7 @@ class HasKeyLookup(PostgresOperatorLookup):
             else:
                 rhs_key_transforms = [key]
             rhs_params.append(
-                "%s%s"
-                % (lhs_json_path, compile_json_path(rhs_key_transforms, include_root=False),)
+                "%s%s" % (lhs_json_path, compile_json_path(rhs_key_transforms, include_root=False))
             )
         # Add condition for each key.
         if self.logical_operator:
@@ -436,7 +433,7 @@ class KeyTransformTextLookupMixin:
                 "Transform should be an instance of KeyTransform in order to " "use this lookup."
             )
         key_text_transform = KeyTextTransform(
-            key_transform.key_name, *key_transform.source_expressions, **key_transform.extra,
+            key_transform.key_name, *key_transform.source_expressions, **key_transform.extra
         )
         super().__init__(key_text_transform, *args, **kwargs)
 
@@ -496,7 +493,7 @@ class KeyTransformExact(JSONExact):
             for value in rhs_params:
                 value = json.loads(value)
                 function = "JSON_QUERY" if isinstance(value, (list, dict)) else "JSON_VALUE"
-                func.append("%s('%s', '$.value')" % (function, json.dumps({"value": value}),))
+                func.append("%s('%s', '$.value')" % (function, json.dumps({"value": value})))
             rhs = rhs % tuple(func)
             rhs_params = []
         elif connection.vendor == "sqlite":
