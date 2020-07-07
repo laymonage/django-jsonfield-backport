@@ -1,60 +1,44 @@
 import functools
 import json
 
-from django.core.exceptions import ImproperlyConfigured
+import django
 from django.db import transaction
 from django.db.backends.base.features import BaseDatabaseFeatures
 from django.db.backends.signals import connection_created
-from django.db.backends.sqlite3.base import DatabaseFeatures as BaseSQLiteFeatures, none_guard
+from django.db.backends.sqlite3.base import none_guard
 from django.db.utils import OperationalError
 from django.dispatch import receiver
-from django.utils.functional import cached_property
 from django.utils.version import PY38
 
-try:
-    from django.db.backends.mysql.base import DatabaseFeatures as BaseMySQLFeatures
-except ImproperlyConfigured:
-    BaseMySQLFeatures = BaseDatabaseFeatures
 
-try:
-    from django.db.backends.oracle.base import DatabaseFeatures as BaseOracleFeatures
-except ImproperlyConfigured:
-    BaseOracleFeatures = BaseDatabaseFeatures
-
-try:
-    from django.db.backends.postgresql.base import DatabaseFeatures as BasePostgresFeatures
-except ImproperlyConfigured:
-    BasePostgresFeatures = BaseDatabaseFeatures
+class DatabaseFeatures(BaseDatabaseFeatures):
+    # Does the backend support JSONField?
+    supports_json_field = True
+    # Does the backend support primitives in JSONField?
+    supports_primitives_in_json_field = True
+    # Is there a true datatype for JSON?
+    has_native_json_field = False
+    # Does the backend use PostgreSQL-style JSON operators like '->'?
+    has_json_operators = False
 
 
-class MySQLFeatures(BaseMySQLFeatures):
-    @cached_property
+class MySQLFeatures(DatabaseFeatures):
     def supports_json_field(self):
         if self.connection.mysql_is_mariadb:
             return self.connection.mysql_version >= (10, 2, 7)
         return self.connection.mysql_version >= (5, 7, 8)
 
-    supports_primitives_in_json_field = True
-    has_native_json_field = False
-    has_json_operators = False
 
-
-class OracleFeatures(BaseOracleFeatures):
-    supports_json_field = True
+class OracleFeatures(DatabaseFeatures):
     supports_primitives_in_json_field = False
-    has_native_json_field = False
-    has_json_operators = False
 
 
-class PostgresFeatures(BasePostgresFeatures):
-    supports_json_field = True
-    supports_primitives_in_json_field = True
+class PostgresFeatures(DatabaseFeatures):
     has_native_json_field = True
     has_json_operators = True
 
 
-class SQLiteFeatures(BaseSQLiteFeatures):
-    @cached_property
+class SQLiteFeatures(DatabaseFeatures):
     def supports_json_field(self):
         try:
             with self.connection.cursor() as cursor, transaction.atomic():
@@ -63,17 +47,32 @@ class SQLiteFeatures(BaseSQLiteFeatures):
             return False
         return True
 
-    supports_primitives_in_json_field = True
-    has_native_json_field = False
-    has_json_operators = False
 
-
-features = {
+feature_classes = {
     "mysql": MySQLFeatures,
     "oracle": OracleFeatures,
     "postgresql": PostgresFeatures,
     "sqlite": SQLiteFeatures,
 }
+
+
+feature_names = [
+    "supports_json_field",
+    "supports_primitives_in_json_field",
+    "has_native_json_field",
+    "has_json_operators",
+]
+
+
+@receiver(connection_created)
+def extend_features(connection=None, **kwargs):
+    if django.VERSION >= (3, 1):
+        return
+    for name in feature_names:
+        value = feature = getattr(feature_classes[connection.vendor], name)
+        if callable(feature):
+            value = feature(connection.features)
+        setattr(connection.features, name, value)
 
 
 @none_guard

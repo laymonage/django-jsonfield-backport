@@ -4,24 +4,16 @@ from unittest import mock, skipIf, skipUnless
 
 import django
 from django.core import serializers
-from django.core.checks import Error, Warning as DjangoWarning
 from django.core.exceptions import ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db import (
-    DataError,
-    IntegrityError,
-    NotSupportedError,
-    OperationalError,
-    connection,
-    models,
-)
+from django.db import DataError, IntegrityError, NotSupportedError, OperationalError, connection
 from django.db.models import Count, F, OuterRef, Q, Subquery, Transform, Value
 from django.db.models.expressions import RawSQL
-from django.test import SimpleTestCase, TestCase
+from django.test import SimpleTestCase, TestCase, skipIfDBFeature, skipUnlessDBFeature
 from django.test.utils import CaptureQueriesContext
 
 from django_jsonfield_backport import forms
-from django_jsonfield_backport.features import features
+from django_jsonfield_backport.features import extend_features
 from django_jsonfield_backport.models import (
     JSONCast,
     JSONField,
@@ -33,8 +25,10 @@ from django_jsonfield_backport.models import (
 
 from .models import CustomJSONDecoder, JSONModel, NullableJSONModel
 
+extend_features(connection)
 
-@skipUnless(features[connection.vendor].supports_json_field, "Only test on supported backends.")
+
+@skipUnlessDBFeature("supports_json_field")
 class JSONFieldTests(TestCase):
     def test_invalid_value(self):
         msg = "is not JSON serializable"
@@ -94,46 +88,6 @@ class TestMethods(SimpleTestCase):
 
 
 class TestValidation(SimpleTestCase):
-    databases = {"default"}
-
-    @skipIf(django.VERSION >= (3, 1), "Not applicable.")
-    def test_invalid_default(self):
-        class InvalidDefaultModel(models.Model):
-            field = JSONField(default={})
-
-        self.assertEqual(
-            InvalidDefaultModel._meta.get_field("field").check(),
-            [
-                DjangoWarning(
-                    msg=(
-                        "JSONField default should be a callable instead of an instance "
-                        "so that it's not shared between all field instances."
-                    ),
-                    hint="Use a callable instead, e.g., use `dict` instead of `{}`.",
-                    obj=InvalidDefaultModel._meta.get_field("field"),
-                    id="fields.E010",
-                )
-            ],
-        )
-
-    @skipIf(django.VERSION >= (3, 1), "Not applicable.")
-    def test_check_jsonfield(self):
-        error = Error(
-            "%s does not support JSONFields." % connection.display_name,
-            obj=JSONModel,
-            id="fields.E180",
-        )
-        self.assertEqual(JSONModel.check(databases=self.databases), [])
-        original_feature = features[connection.vendor].supports_json_field
-        features[connection.vendor].supports_json_field = False
-
-        class UnallowedModel(models.Model):
-            field = JSONField()
-
-        self.assertEqual(UnallowedModel.check(databases=self.databases), [])
-        self.assertEqual(JSONModel.check(databases=self.databases), [error])
-        features[connection.vendor].supports_json_field = original_feature
-
     def test_invalid_encoder(self):
         msg = "The encoder parameter must be a callable object."
         with self.assertRaisesMessage(ValueError, msg):
@@ -196,7 +150,7 @@ class TestSerialization(SimpleTestCase):
                 self.assertEqual(instance.value, value)
 
 
-@skipUnless(features[connection.vendor].supports_json_field, "Only test on supported backends.")
+@skipUnlessDBFeature("supports_json_field")
 class TestSaveLoad(TestCase):
     def test_null(self):
         obj = NullableJSONModel(value=None)
@@ -204,10 +158,7 @@ class TestSaveLoad(TestCase):
         obj.refresh_from_db()
         self.assertIsNone(obj.value)
 
-    @skipUnless(
-        features[connection.vendor].supports_primitives_in_json_field,
-        "Only test on supported backends.",
-    )
+    @skipUnlessDBFeature("supports_primitives_in_json_field")
     def test_json_null_different_from_sql_null(self):
         json_null = NullableJSONModel.objects.create(value=Value("null"))
         json_null.refresh_from_db()
@@ -226,10 +177,7 @@ class TestSaveLoad(TestCase):
         # 'null' is equal to NULL in Python (None).
         self.assertEqual(json_null.value, sql_null.value)
 
-    @skipUnless(
-        features[connection.vendor].supports_primitives_in_json_field,
-        "Only test on supported backends.",
-    )
+    @skipUnlessDBFeature("supports_primitives_in_json_field")
     def test_primitives(self):
         values = [
             True,
@@ -283,8 +231,18 @@ class TestSaveLoad(TestCase):
         obj.refresh_from_db()
         self.assertEqual(obj.value, value)
 
+    def test_bulk_update(self):
+        NullableJSONModel.objects.bulk_create(
+            [NullableJSONModel(value={"a": i}) for i in range(10)]
+        )
+        objs = NullableJSONModel.objects.all()
+        for obj in objs:
+            obj.value = {"c": obj.value["a"] + 1}
+        NullableJSONModel.objects.bulk_update(objs, ["value"])
+        self.assertCountEqual(NullableJSONModel.objects.filter(value__has_key="c"), objs)
 
-@skipUnless(features[connection.vendor].supports_json_field, "Only test on supported backends.")
+
+@skipUnlessDBFeature("supports_json_field")
 class TestQuerying(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -314,7 +272,7 @@ class TestQuerying(TestCase):
             },
         ]
         cls.objs = [NullableJSONModel.objects.create(value=value) for value in values]
-        if features[connection.vendor].supports_primitives_in_json_field:
+        if connection.features.supports_primitives_in_json_field:
             cls.objs.extend(
                 [NullableJSONModel.objects.create(value=value) for value in cls.primitives]
             )
@@ -486,10 +444,7 @@ class TestQuerying(TestCase):
                 qs = NullableJSONModel.objects.filter(value__contains=value)
                 self.assertSequenceEqual(qs, expected)
 
-    @skipUnless(
-        features[connection.vendor].supports_primitives_in_json_field,
-        "Only test on supported backends.",
-    )
+    @skipUnlessDBFeature("supports_primitives_in_json_field")
     def test_contains_primitives(self):
         for value in self.primitives:
             with self.subTest(value=value):
@@ -517,9 +472,7 @@ class TestQuerying(TestCase):
         expected_objs[4] = ("m",)
         self.assertSequenceEqual(qs, expected_objs)
 
-    @skipUnless(
-        features[connection.vendor].can_distinct_on_fields, "Only test on supported backends.",
-    )
+    @skipUnlessDBFeature("can_distinct_on_fields")
     def test_deep_distinct(self):
         query = NullableJSONModel.objects.distinct("value__k__l").values_list("value__k__l")
         self.assertSequenceEqual(query, [("m",), (None,)])
@@ -650,10 +603,7 @@ class TestQuerying(TestCase):
     def test_key_iregex(self):
         self.assertIs(NullableJSONModel.objects.filter(value__foo__iregex=r"^bAr$").exists(), True)
 
-    @skipUnless(
-        features[connection.vendor].has_json_operators,
-        "A separate test exists for backends with no json operators.",
-    )
+    @skipUnlessDBFeature("has_json_operators")
     def test_key_sql_injection(self):
         with CaptureQueriesContext(connection) as queries:
             self.assertIs(
@@ -666,10 +616,7 @@ class TestQuerying(TestCase):
             """."value" -> 'test'' = ''"a"'') OR 1 = 1 OR (''d') = '"x"' """, queries[0]["sql"],
         )
 
-    @skipIf(
-        features[connection.vendor].has_json_operators,
-        "A separate test exists for backends with json operators.",
-    )
+    @skipIfDBFeature("has_json_operators")
     def test_key_sql_injection_escape(self):
         query = str(
             JSONModel.objects.filter(**{"""value__test") = '"a"' OR 1 = 1 OR ("d""": "x"}).query

@@ -11,7 +11,6 @@ from django.db.models.lookups import FieldGetDbPrepValueMixin, Lookup, Transform
 from django.utils.translation import gettext_lazy as _
 
 from . import forms
-from .features import features
 
 __all__ = ["JSONField"]
 
@@ -87,7 +86,7 @@ else:
                 connection = connections[db]
                 if not (
                     "supports_json_field" in self.model._meta.required_db_features
-                    or features[connection.vendor].supports_json_field
+                    or connection.features.supports_json_field
                 ):
                     errors.append(
                         checks.Error(
@@ -109,7 +108,7 @@ else:
         def from_db_value(self, value, expression, connection):
             if value is None:
                 return value
-            if features[connection.vendor].has_native_json_field and self.decoder is None:
+            if connection.features.has_native_json_field and self.decoder is None:
                 return value
             try:
                 return json.loads(value, cls=self.decoder)
@@ -603,7 +602,7 @@ class KeyTransformIRegex(CaseInsensitiveMixin, KeyTransformTextLookupMixin, look
 class KeyTransformNumericLookupMixin:
     def process_rhs(self, compiler, connection):
         rhs, rhs_params = super().process_rhs(compiler, connection)
-        if not features[connection.vendor].has_native_json_field:
+        if not connection.features.has_native_json_field:
             rhs_params = [json.loads(value) for value in rhs_params]
         return rhs, rhs_params
 
