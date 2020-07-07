@@ -74,10 +74,11 @@ This package supports and is tested against the latest patch versions of:
 * **MySQL:** 5.7, 8.0
 * **Oracle:** 12.2+ (only tested against 12.2.0.1 SE)
 * **PostgreSQL:** 9.5, 10, 11, 12
-* **SQLite:** 3.9.0+ with `JSON1`_ extension (only tested against the built-in
-  library included in Ubuntu's Python packages)
+* **SQLite:** 3.9.0+ with the `JSON1`_ extension
 
 All database backends are tested with the latest versions of their drivers.
+SQLite is also tested on GitHub Actions' latest macOS and Windows virtual
+environments.
 
 .. _JSON1: https://docs.djangoproject.com/en/3.1/ref/databases/#sqlite-json1
 
