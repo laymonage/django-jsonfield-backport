@@ -27,7 +27,13 @@ class CustomJSONDecoder(json.JSONDecoder):
 class JSONModel(models.Model):
     value = JSONField()
 
+    class Meta:
+        required_db_features = {"supports_json_field"}
+
 
 class NullableJSONModel(models.Model):
     value = JSONField(blank=True, null=True)
-    value_custom = JSONField(encoder=DjangoJSONEncoder, decoder=CustomJSONDecoder, null=True,)
+    value_custom = JSONField(encoder=DjangoJSONEncoder, decoder=CustomJSONDecoder, null=True)
+
+    class Meta:
+        required_db_features = {"supports_json_field"}

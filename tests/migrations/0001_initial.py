@@ -24,6 +24,7 @@ class Migration(migrations.Migration):
                 ),
                 ("value", django_jsonfield_backport.models.JSONField()),
             ],
+            options={"required_db_features": {"supports_json_field"}},
         ),
         migrations.CreateModel(
             name="NullableJSONModel",
@@ -44,5 +45,6 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
+            options={"required_db_features": {"supports_json_field"}},
         ),
     ]
