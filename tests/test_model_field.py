@@ -4,17 +4,9 @@ from unittest import mock, skipIf, skipUnless
 
 import django
 from django.core import serializers
-from django.core.checks import Error, Warning as DjangoWarning
 from django.core.exceptions import ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db import (
-    DataError,
-    IntegrityError,
-    NotSupportedError,
-    OperationalError,
-    connection,
-    models,
-)
+from django.db import DataError, IntegrityError, NotSupportedError, OperationalError, connection
 from django.db.models import Count, F, OuterRef, Q, Subquery, Transform, Value
 from django.db.models.expressions import RawSQL
 from django.test import SimpleTestCase, TestCase, skipIfDBFeature, skipUnlessDBFeature
@@ -96,49 +88,6 @@ class TestMethods(SimpleTestCase):
 
 
 class TestValidation(SimpleTestCase):
-    databases = {"default"}
-
-    @skipIf(django.VERSION >= (3, 1), "Not applicable.")
-    def test_invalid_default(self):
-        class InvalidDefaultModel(models.Model):
-            field = JSONField(default={})
-
-        self.assertEqual(
-            InvalidDefaultModel._meta.get_field("field").check(),
-            [
-                DjangoWarning(
-                    msg=(
-                        "JSONField default should be a callable instead of an instance "
-                        "so that it's not shared between all field instances."
-                    ),
-                    hint="Use a callable instead, e.g., use `dict` instead of `{}`.",
-                    obj=InvalidDefaultModel._meta.get_field("field"),
-                    id="fields.E010",
-                )
-            ],
-        )
-
-    @skipIf(django.VERSION >= (3, 1), "Not applicable.")
-    def test_check_jsonfield_router_migrate_not_allowed(self):
-        class UnallowedModel(models.Model):
-            field = JSONField()
-
-        self.assertEqual(UnallowedModel.check(databases=self.databases), [])
-
-    @skipIf(django.VERSION >= (3, 1), "Not applicable.")
-    def test_check_jsonfield(self):
-        class Model(models.Model):
-            field = JSONField()
-
-        error = Error(
-            "%s does not support JSONFields." % connection.display_name,
-            obj=Model,
-            id="fields.E180",
-        )
-
-        expected = [] if connection.features.supports_json_field else [error]
-        self.assertEqual(Model.check(databases=self.databases), expected)
-
     def test_invalid_encoder(self):
         msg = "The encoder parameter must be a callable object."
         with self.assertRaisesMessage(ValueError, msg):
@@ -281,6 +230,16 @@ class TestSaveLoad(TestCase):
         obj = JSONModel.objects.create(value=value)
         obj.refresh_from_db()
         self.assertEqual(obj.value, value)
+
+    def test_bulk_update(self):
+        NullableJSONModel.objects.bulk_create(
+            [NullableJSONModel(value={"a": i}) for i in range(10)]
+        )
+        objs = NullableJSONModel.objects.all()
+        for obj in objs:
+            obj.value = {"c": obj.value["a"] + 1}
+        NullableJSONModel.objects.bulk_update(objs, ["value"])
+        self.assertCountEqual(NullableJSONModel.objects.filter(value__has_key="c"), objs)
 
 
 @skipUnlessDBFeature("supports_json_field")
