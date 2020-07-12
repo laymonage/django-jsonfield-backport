@@ -363,14 +363,6 @@ class JSONExact(lookups.Exact):
         return rhs, rhs_params
 
 
-if django.VERSION < (3, 1):
-    JSONField.register_lookup(DataContains)
-    JSONField.register_lookup(ContainedBy)
-    JSONField.register_lookup(HasKey)
-    JSONField.register_lookup(HasKeys)
-    JSONField.register_lookup(HasAnyKeys)
-    JSONField.register_lookup(JSONExact)
-
 if django.VERSION >= (3, 1):
     from django.db.models.fields.json import (
         KeyTextTransform as BuiltinKeyTextTransform,
@@ -623,7 +615,14 @@ class KeyTransformGte(KeyTransformNumericLookupMixin, lookups.GreaterThanOrEqual
     pass
 
 
-if django.VERSION < (3, 1):
+def register_lookups():
+    JSONField.register_lookup(DataContains)
+    JSONField.register_lookup(ContainedBy)
+    JSONField.register_lookup(HasKey)
+    JSONField.register_lookup(HasKeys)
+    JSONField.register_lookup(HasAnyKeys)
+    JSONField.register_lookup(JSONExact)
+
     KeyTransform.register_lookup(KeyTransformExact)
     KeyTransform.register_lookup(KeyTransformIExact)
     KeyTransform.register_lookup(KeyTransformIsNull)

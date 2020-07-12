@@ -1,8 +1,8 @@
+import django
 from django.apps import AppConfig
-from django.db.backends.signals import connection_created
 from django.utils.translation import ugettext_lazy as _
 
-from django_jsonfield_backport import features
+from django_jsonfield_backport import features, models
 
 
 class JSONFieldConfig(AppConfig):
@@ -10,5 +10,7 @@ class JSONFieldConfig(AppConfig):
     verbose_name = _("JSONField backport from Django 3.1")
 
     def ready(self):
-        connection_created.connect(features.extend_features)
-        connection_created.connect(features.extend_sqlite)
+        if django.VERSION >= (3, 1):
+            return
+        features.connect_signal_receivers()
+        models.register_lookups()

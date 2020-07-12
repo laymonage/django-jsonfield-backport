@@ -1,9 +1,9 @@
 import functools
 import json
 
-import django
 from django.db import transaction
 from django.db.backends.base.features import BaseDatabaseFeatures
+from django.db.backends.signals import connection_created
 from django.db.backends.sqlite3.base import none_guard
 from django.db.utils import OperationalError
 from django.utils.version import PY38
@@ -63,8 +63,6 @@ feature_names = [
 
 
 def extend_features(connection=None, **kwargs):
-    if django.VERSION >= (3, 1):
-        return
     for name in feature_names:
         value = feature = getattr(feature_classes[connection.vendor], name)
         if callable(feature):
@@ -90,3 +88,8 @@ def extend_sqlite(connection=None, **kwargs):
     else:
         create_deterministic_function = connection.connection.create_function
     create_deterministic_function("JSON_CONTAINS", 2, _sqlite_json_contains)
+
+
+def connect_signal_receivers():
+    connection_created.connect(extend_features)
+    connection_created.connect(extend_sqlite)
