@@ -9,6 +9,7 @@ on:
       - master
 
 env:
+  # Necessary for pull requests.
   COVERALLS_REPO_TOKEN: PCa7chQGMdH1fxETpgGHixvWDTPPX44P3
 
 jobs:
