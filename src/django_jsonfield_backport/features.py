@@ -81,11 +81,12 @@ def _sqlite_json_contains(haystack, needle):
 
 
 def extend_sqlite(connection=None, **kwargs):
-    if connection.vendor == "sqlite":
-        if PY38:
-            create_deterministic_function = functools.partial(
-                connection.connection.create_function, deterministic=True,
-            )
-        else:
-            create_deterministic_function = connection.connection.create_function
-        create_deterministic_function("JSON_CONTAINS", 2, _sqlite_json_contains)
+    if connection.vendor != "sqlite":
+        return
+    if PY38:
+        create_deterministic_function = functools.partial(
+            connection.connection.create_function, deterministic=True,
+        )
+    else:
+        create_deterministic_function = connection.connection.create_function
+    create_deterministic_function("JSON_CONTAINS", 2, _sqlite_json_contains)
