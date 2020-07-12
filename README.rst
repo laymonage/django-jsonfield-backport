@@ -87,18 +87,18 @@ Installation
 
 1. Use **pip** or your preferred dependency management tool to install the package.
 
-.. code-block:: shell
+   .. code-block:: shell
 
-    $ pip install django-jsonfield-backport
+       $ pip install django-jsonfield-backport
 
 2. Add ``"django_jsonfield_backport"`` to ``INSTALLED_APPS`` in your settings.
 
-.. code-block:: python
+   .. code-block:: python
 
-    INSTALLED_APPS = [
-        ...
-        "django_jsonfield_backport",
-    ]
+       INSTALLED_APPS = [
+           ...
+           "django_jsonfield_backport",
+       ]
 
 Usage
 =====
