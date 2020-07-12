@@ -5,6 +5,7 @@ SECRET_KEY = "0xdeadbeefdeadbeef"
 DEBUG = True
 
 INSTALLED_APPS = [
+    "django_jsonfield_backport",
     "tests",
 ]
 

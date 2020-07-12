@@ -4,10 +4,8 @@ import json
 import django
 from django.db import transaction
 from django.db.backends.base.features import BaseDatabaseFeatures
-from django.db.backends.signals import connection_created
 from django.db.backends.sqlite3.base import none_guard
 from django.db.utils import OperationalError
-from django.dispatch import receiver
 from django.utils.version import PY38
 
 
@@ -64,7 +62,6 @@ feature_names = [
 ]
 
 
-@receiver(connection_created)
 def extend_features(connection=None, **kwargs):
     if django.VERSION >= (3, 1):
         return
@@ -83,7 +80,6 @@ def _sqlite_json_contains(haystack, needle):
     return target == candidate
 
 
-@receiver(connection_created)
 def extend_sqlite(connection=None, **kwargs):
     if connection.vendor == "sqlite":
         if PY38:
