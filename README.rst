@@ -91,6 +91,15 @@ Use **pip** or your preferred dependency management tool.
 
     $ pip install django-jsonfield-backport
 
+Add ``django_jsonfield_backport`` to ``INSTALLED_APPS`` in your settings.
+
+.. code-block:: python
+
+    INSTALLED_APPS = [
+        ...
+        "django_jsonfield_backport",
+    ]
+
 Usage
 =====
 

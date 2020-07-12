@@ -13,7 +13,6 @@ from django.test import SimpleTestCase, TestCase, skipIfDBFeature, skipUnlessDBF
 from django.test.utils import CaptureQueriesContext
 
 from django_jsonfield_backport import forms
-from django_jsonfield_backport.features import extend_features
 from django_jsonfield_backport.models import (
     JSONCast,
     JSONField,
@@ -24,8 +23,6 @@ from django_jsonfield_backport.models import (
 )
 
 from .models import CustomJSONDecoder, JSONModel, NullableJSONModel
-
-extend_features(connection)
 
 
 @skipUnlessDBFeature("supports_json_field")
