@@ -62,7 +62,7 @@ feature_names = [
 ]
 
 
-def extend_features(connection=None, **kwargs):
+def extend_features(connection, **kwargs):
     for name in feature_names:
         value = feature = getattr(feature_classes[connection.vendor], name)
         if callable(feature):
@@ -78,7 +78,7 @@ def _sqlite_json_contains(haystack, needle):
     return target == candidate
 
 
-def extend_sqlite(connection=None, **kwargs):
+def extend_sqlite(connection, **kwargs):
     if connection.vendor != "sqlite":
         return
     if PY38:
