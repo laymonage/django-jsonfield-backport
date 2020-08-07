@@ -18,6 +18,11 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     has_native_json_field = False
     # Does the backend use PostgreSQL-style JSON operators like '->'?
     has_json_operators = False
+    # Does the backend support __contains and __contained_by lookups for a JSONField?
+    supports_json_field_contains = True
+    # Does value__d__contains={'f': 'g'} (without a list around the dict) match
+    # {'d': [{'f': 'g'}]}?
+    json_key_contains_list_matching_requires_list = False
 
 
 class MySQLFeatures(DatabaseFeatures):
@@ -29,11 +34,13 @@ class MySQLFeatures(DatabaseFeatures):
 
 class OracleFeatures(DatabaseFeatures):
     supports_primitives_in_json_field = False
+    supports_json_field_contains = False
 
 
 class PostgresFeatures(DatabaseFeatures):
     has_native_json_field = True
     has_json_operators = True
+    json_key_contains_list_matching_requires_list = True
 
 
 class SQLiteFeatures(DatabaseFeatures):
@@ -44,6 +51,8 @@ class SQLiteFeatures(DatabaseFeatures):
         except OperationalError:
             return False
         return True
+
+    supports_json_field_contains = False
 
 
 feature_classes = {
@@ -59,6 +68,8 @@ feature_names = [
     "supports_primitives_in_json_field",
     "has_native_json_field",
     "has_json_operators",
+    "supports_json_field_contains",
+    "json_key_contains_list_matching_requires_list",
 ]
 
 
@@ -72,9 +83,39 @@ def extend_features(connection, **kwargs):
 
 @none_guard
 def _sqlite_json_contains(haystack, needle):
-    target, candidate = json.loads(haystack), json.loads(needle)
+    if isinstance(haystack, str):
+        try:
+            target = json.loads(haystack)
+        except json.JSONDecodeError:
+            target = haystack
+    else:
+        target = haystack
+    if isinstance(needle, str):
+        try:
+            candidate = json.loads(needle)
+        except json.JSONDecodeError:
+            candidate = needle
+    else:
+        candidate = needle
     if isinstance(target, dict) and isinstance(candidate, dict):
-        return target.items() >= candidate.items()
+        if target.items() >= candidate.items():
+            return True
+        for key, value in candidate.items():
+            if key in target:
+                if not _sqlite_json_contains(target[key], value):
+                    return False
+            else:
+                return False
+        return True
+    if isinstance(target, list):
+        if isinstance(candidate, list):
+            try:
+                # When possible, use superset checking for better performance.
+                return set(target).issuperset(candidate)
+            except TypeError:
+                # Superset checking may not be possible, e.g. with nested lists.
+                return all(c in target for c in candidate)
+        return candidate in target
     return target == candidate
 
 

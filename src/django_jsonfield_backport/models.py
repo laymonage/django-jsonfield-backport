@@ -235,21 +235,24 @@ class DataContains(PostgresOperatorLookup):
             return HasKey(self.lhs, self.rhs).as_oracle(compiler, connection)
         lhs, lhs_params = self.process_lhs(compiler, connection)
         params = tuple(lhs_params)
-        sql = "JSON_QUERY(%s, '$%s' WITH WRAPPER) = " "JSON_QUERY('%s', '$.value' WITH WRAPPER)"
         rhs = json.loads(self.rhs)
+        if rhs == {}:
+            return "DBMS_LOB.SUBSTR(%s) LIKE '{%%%%}'" % lhs, params
+        if rhs == []:
+            return "DBMS_LOB.SUBSTR(%s) LIKE '[%%%%]'" % lhs, params
         if isinstance(rhs, dict):
-            if not rhs:
-                return "DBMS_LOB.SUBSTR(%s) LIKE '{%%%%}'" % lhs, params
-            return (
-                " AND ".join(
-                    [
-                        sql % (lhs, ".%s" % json.dumps(key), json.dumps({"value": value}))
-                        for key, value in rhs.items()
-                    ]
-                ),
-                params,
-            )
-        return sql % (lhs, "", json.dumps({"value": rhs})), params
+            # There's no JSON_CONTAINS function on Oracle, a workaround is possible by chaining
+            # KeyTransformExact with AND for every (key, value) pair in the rhs dict.
+            funcs = []
+            func_params = []
+            for key, value in rhs.items():
+                new_lhs = KeyTransform(key, self.lhs)
+                func, param = KeyTransformExact(new_lhs, value).as_oracle(compiler, connection)
+                funcs.append(func)
+                func_params.extend(param)
+            return ' AND '.join(funcs), tuple(func_params)
+        # For all other cases, fall back to text-based contains lookup.
+        return lookups.Contains(self.lhs, rhs).as_oracle(compiler, connection)
 
 
 class ContainedBy(PostgresOperatorLookup):
@@ -561,10 +564,6 @@ class KeyTransformIContains(CaseInsensitiveMixin, KeyTransformTextLookupMixin, l
     pass
 
 
-class KeyTransformContains(KeyTransformTextLookupMixin, lookups.Contains):
-    pass
-
-
 class KeyTransformStartsWith(KeyTransformTextLookupMixin, lookups.StartsWith):
     pass
 
@@ -626,7 +625,6 @@ def register_lookups():
     KeyTransform.register_lookup(KeyTransformExact)
     KeyTransform.register_lookup(KeyTransformIExact)
     KeyTransform.register_lookup(KeyTransformIsNull)
-    KeyTransform.register_lookup(KeyTransformContains)
     KeyTransform.register_lookup(KeyTransformIContains)
     KeyTransform.register_lookup(KeyTransformStartsWith)
     KeyTransform.register_lookup(KeyTransformIStartsWith)

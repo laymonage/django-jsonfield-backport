@@ -432,10 +432,20 @@ class TestQuerying(TestCase):
             ({"baz": {"a": "b", "c": "d"}}, [self.objs[7]]),
             ({"k": True, "l": False}, [self.objs[6]]),
             ({"d": ["e", {"f": "g"}]}, [self.objs[4]]),
-            ([1, [2]], [self.objs[5]]),
             ({"n": [None]}, [self.objs[4]]),
             ({"j": None}, [self.objs[4]]),
         ]
+        # Oracle needs the values of the rhs dict to be equal.
+        if connection.vendor != 'oracle':
+            tests += (
+                ({'baz': {'a': 'b'}}, [self.objs[7]]),
+                ({'baz': {'c': 'd'}}, [self.objs[7]]),
+                ({'d': ['e']}, [self.objs[4]]),
+                ({'d': [{'f': 'g'}]}, [self.objs[4]]),
+                ([1, [2]], [self.objs[5]]),
+                ([1], [self.objs[5]]),
+                ([[2]], [self.objs[5]]),
+            )
         for value, expected in tests:
             with self.subTest(value=value):
                 qs = NullableJSONModel.objects.filter(value__contains=value)
@@ -572,12 +582,29 @@ class TestQuerying(TestCase):
             self.objs[3:5],
         )
 
+    def test_array_key_contains(self):
+        tests = [
+            ([], [self.objs[7]]),
+            ("bar", [self.objs[7]]),
+        ]
+        # Oracle falls back to pattern-based containment checking for non-dict rhs.
+        if connection.vendor != 'oracle':
+            (['bar'], [self.objs[7]]),
+            ("ar", [self.objs[7]]),
+        for value, expected in tests:
+            with self.subTest(value=value):
+                qs = NullableJSONModel.objects.filter(value__bar__contains=value)
+                self.assertSequenceEqual(qs, expected)
+
     def test_key_iexact(self):
         self.assertIs(NullableJSONModel.objects.filter(value__foo__iexact="BaR").exists(), True)
         self.assertIs(NullableJSONModel.objects.filter(value__foo__iexact='"BaR"').exists(), False)
 
     def test_key_contains(self):
-        self.assertIs(NullableJSONModel.objects.filter(value__foo__contains="ar").exists(), True)
+        # Oracle falls back to text-based contains lookup with non-dict rhs.
+        if connection.vendor != 'oracle':
+            self.assertIs(NullableJSONModel.objects.filter(value__foo__contains='ar').exists(), False)
+        self.assertIs(NullableJSONModel.objects.filter(value__foo__contains='bar').exists(), True)
 
     def test_key_icontains(self):
         self.assertIs(NullableJSONModel.objects.filter(value__foo__icontains="Ar").exists(), True)
@@ -632,13 +659,23 @@ class TestQuerying(TestCase):
 
     def test_lookups_with_key_transform(self):
         tests = (
-            ("value__d__contains", "e"),
             ("value__baz__has_key", "c"),
             ("value__baz__has_keys", ["a", "c"]),
             ("value__baz__has_any_keys", ["a", "x"]),
-            ("value__contains", KeyTransform("bax", "value")),
             ("value__has_key", KeyTextTransform("foo", "value")),
         )
+        # Oracle falls back to pattern-based containment checking for non-dict rhs.
+        if connection.features.supports_json_field_contains:
+            tests += (
+                ('value__d__contains', 'e'),
+                ('value__d__contains', [{'f': 'g'}]),
+                ("value__d__contains", "e"),
+                ('value__baz__contains', {'a': 'b'}),
+                ("value__contains", KeyTransform("bax", "value")),
+            )
+         # For databases where {'f': 'g'} (without surrounding []) matches [{'f': 'g'}].
+        if not connection.features.json_key_contains_list_matching_requires_list:
+            tests += (('value__d__contains', {'f': 'g'}),)
         # contained_by lookup is not supported on Oracle.
         if connection.vendor != "oracle":
             tests += (
@@ -651,5 +688,5 @@ class TestQuerying(TestCase):
                 ),
             )
         for lookup, value in tests:
-            with self.subTest(lookup=lookup):
+            with self.subTest(lookup=lookup, value=value):
                 self.assertIs(NullableJSONModel.objects.filter(**{lookup: value}).exists(), True)
