@@ -57,15 +57,7 @@ feature_classes = {
     "sqlite": SQLiteFeatures,
 }
 
-
-feature_names = [
-    "supports_json_field",
-    "supports_primitives_in_json_field",
-    "has_native_json_field",
-    "has_json_operators",
-    "supports_json_field_contains",
-    "json_key_contains_list_matching_requires_list",
-]
+feature_names = set(dir(DatabaseFeatures)) - set(dir(BaseDatabaseFeatures))
 
 
 def extend_features(connection, **kwargs):
