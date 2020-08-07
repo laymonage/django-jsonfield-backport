@@ -1,12 +1,7 @@
-import functools
-import json
-
 from django.db import transaction
 from django.db.backends.base.features import BaseDatabaseFeatures
 from django.db.backends.signals import connection_created
-from django.db.backends.sqlite3.base import none_guard
 from django.db.utils import OperationalError
-from django.utils.version import PY38
 
 
 class DatabaseFeatures(BaseDatabaseFeatures):
@@ -81,56 +76,5 @@ def extend_features(connection, **kwargs):
         setattr(connection.features, name, value)
 
 
-@none_guard
-def _sqlite_json_contains(haystack, needle):
-    if isinstance(haystack, str):
-        try:
-            target = json.loads(haystack)
-        except json.JSONDecodeError:
-            target = haystack
-    else:
-        target = haystack
-    if isinstance(needle, str):
-        try:
-            candidate = json.loads(needle)
-        except json.JSONDecodeError:
-            candidate = needle
-    else:
-        candidate = needle
-    if isinstance(target, dict) and isinstance(candidate, dict):
-        if target.items() >= candidate.items():
-            return True
-        for key, value in candidate.items():
-            if key in target:
-                if not _sqlite_json_contains(target[key], value):
-                    return False
-            else:
-                return False
-        return True
-    if isinstance(target, list):
-        if isinstance(candidate, list):
-            try:
-                # When possible, use superset checking for better performance.
-                return set(target).issuperset(candidate)
-            except TypeError:
-                # Superset checking may not be possible, e.g. with nested lists.
-                return all(c in target for c in candidate)
-        return candidate in target
-    return target == candidate
-
-
-def extend_sqlite(connection, **kwargs):
-    if connection.vendor != "sqlite":
-        return
-    if PY38:
-        create_deterministic_function = functools.partial(
-            connection.connection.create_function, deterministic=True,
-        )
-    else:
-        create_deterministic_function = connection.connection.create_function
-    create_deterministic_function("JSON_CONTAINS", 2, _sqlite_json_contains)
-
-
 def connect_signal_receivers():
     connection_created.connect(extend_features)
-    connection_created.connect(extend_sqlite)
