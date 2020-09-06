@@ -492,6 +492,12 @@ class KeyTransformIsNull(lookups.IsNull):
 
 
 class KeyTransformIn(lookups.In):
+    def process_lhs(self, compiler, connection):
+        lhs, lhs_params = super().process_lhs(compiler, connection)
+        if connection.vendor == "mysql" and connection.mysql_is_mariadb:
+            return "JSON_UNQUOTE(%s)" % lhs, lhs_params
+        return lhs, lhs_params
+
     def process_rhs(self, compiler, connection):
         rhs, rhs_params = super().process_rhs(compiler, connection)
         if not connection.features.has_native_json_field:
