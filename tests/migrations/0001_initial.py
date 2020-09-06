@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
                 (
                     "id",
                     models.AutoField(
-                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID",
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
                     ),
                 ),
                 ("value", django_jsonfield_backport.models.JSONField()),
@@ -32,10 +32,10 @@ class Migration(migrations.Migration):
                 (
                     "id",
                     models.AutoField(
-                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID",
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
                     ),
                 ),
-                ("value", django_jsonfield_backport.models.JSONField(blank=True, null=True),),
+                ("value", django_jsonfield_backport.models.JSONField(blank=True, null=True)),
                 (
                     "value_custom",
                     django_jsonfield_backport.models.JSONField(

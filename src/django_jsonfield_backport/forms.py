@@ -58,7 +58,7 @@ else:
                 converted = json.loads(value, cls=self.decoder)
             except json.JSONDecodeError:
                 raise ValidationError(
-                    self.error_messages["invalid"], code="invalid", params={"value": value},
+                    self.error_messages["invalid"], code="invalid", params={"value": value}
                 )
             if isinstance(converted, str):
                 return JSONString(converted)
