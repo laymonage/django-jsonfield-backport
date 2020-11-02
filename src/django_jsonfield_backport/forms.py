@@ -76,7 +76,7 @@ else:
         def prepare_value(self, value):
             if isinstance(value, InvalidJSONInput):
                 return value
-            return json.dumps(value, cls=self.encoder)
+            return json.dumps(value, ensure_ascii=False, cls=self.encoder)
 
         def has_changed(self, initial, data):
             if super().has_changed(initial, data):
@@ -86,3 +86,22 @@ else:
             return json.dumps(initial, sort_keys=True, cls=self.encoder) != json.dumps(
                 self.to_python(data), sort_keys=True, cls=self.encoder
             )
+
+
+def patch_admin():
+    from django.contrib.admin import helpers, utils
+
+    from django_jsonfield_backport import models
+
+    display_for_field = utils.display_for_field
+
+    def display_for_field_mod(value, field, empty_value_display):
+        if isinstance(field, models.JSONField) and value:
+            try:
+                return json.dumps(value, ensure_ascii=False, cls=field.encoder)
+            except TypeError:
+                return utils.display_for_value(value, empty_value_display)
+        return display_for_field(value, field, empty_value_display)
+
+    utils.display_for_field = display_for_field_mod
+    helpers.display_for_field = display_for_field_mod

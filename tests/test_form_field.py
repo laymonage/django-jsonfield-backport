@@ -1,10 +1,12 @@
 import json
 import uuid
 
+from django.contrib.admin.utils import display_for_field
 from django.core.serializers.json import DjangoJSONEncoder
 from django.forms import CharField, Form, Textarea, TextInput, ValidationError
 from django.test import SimpleTestCase
 
+from django_jsonfield_backport import models
 from django_jsonfield_backport.forms import JSONField
 
 
@@ -29,6 +31,9 @@ class JSONFieldTest(SimpleTestCase):
         self.assertEqual(field.prepare_value({"a": "b"}), '{"a": "b"}')
         self.assertEqual(field.prepare_value(None), "null")
         self.assertEqual(field.prepare_value("foo"), '"foo"')
+        self.assertEqual(field.prepare_value("你好，世界"), '"你好，世界"')
+        self.assertEqual(field.prepare_value({"a": "😀🐱"}), '{"a": "😀🐱"}')
+        self.assertEqual(field.prepare_value(["你好，世界", "jaźń"]), '["你好，世界", "jaźń"]')
 
     def test_widget(self):
         field = JSONField()
@@ -111,3 +116,25 @@ class JSONFieldTest(SimpleTestCase):
         form = JSONForm({"name": "xy", "json_field": '{"foo"}'})
         self.assertEqual(form.errors["json_field"], ["Enter a valid JSON."])
         self.assertIn("{&quot;foo&quot;}</textarea>", form.as_p())
+
+
+class AdminTest(SimpleTestCase):
+    empty_value = "-empty-"
+
+    def test_null_display_for_field(self):
+        display_value = display_for_field(None, models.JSONField(), self.empty_value)
+        self.assertEqual(display_value, self.empty_value)
+
+    def test_json_display_for_field(self):
+        tests = [
+            ({"a": {"b": "c"}}, '{"a": {"b": "c"}}'),
+            (["a", "b"], '["a", "b"]'),
+            ("a", '"a"'),
+            ({("a", "b"): "c"}, "{('a', 'b'): 'c'}"),  # Invalid JSON.
+        ]
+        for value, display_value in tests:
+            with self.subTest(value=value):
+                self.assertEqual(
+                    display_for_field(value, models.JSONField(), self.empty_value),
+                    display_value,
+                )

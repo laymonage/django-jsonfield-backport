@@ -2,7 +2,7 @@ import django
 from django.apps import AppConfig
 from django.utils.translation import ugettext_lazy as _
 
-from django_jsonfield_backport import features, models
+from django_jsonfield_backport import features, forms, models
 
 
 class JSONFieldConfig(AppConfig):
@@ -13,4 +13,5 @@ class JSONFieldConfig(AppConfig):
         if django.VERSION >= (3, 1):
             return
         features.connect_signal_receivers()
+        forms.patch_admin()
         models.register_lookups()
