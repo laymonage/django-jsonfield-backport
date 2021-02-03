@@ -61,6 +61,10 @@ feature_names = set(dir(DatabaseFeatures)) - set(dir(BaseDatabaseFeatures))
 
 
 def extend_features(connection, **kwargs):
+    # Database is from an unknown vendor, we don't know about the features.
+    if connection.vendor not in feature_classes:
+        return
+
     for name in feature_names:
         value = feature = getattr(feature_classes[connection.vendor], name)
         if callable(feature):
