@@ -68,7 +68,7 @@ Requirements
 
 This package supports and is tested against the latest patch versions of:
 
-* **Python:** 3.5 (Django 2.2 only), 3.6, 3.7, 3.8, 3.9
+* **Python:** 3.5 (Django 2.2 only), 3.6, 3.7, 3.8, 3.9, 3.10 (dev)
 * **Django:** 2.2, 3.0, 3.1
 * **MariaDB:** 10.2, 10.3, 10.4, 10.5
 * **MySQL:** 5.7, 8.0
