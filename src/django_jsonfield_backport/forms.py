@@ -21,9 +21,9 @@ class JSONString(str):
 
 
 if django.VERSION >= (3, 1):
-    from django.forms import JSONField as BuiltinJSONField
+    import django.forms.fields as builtin_fields
 
-    class JSONField(BuiltinJSONField):
+    class JSONField(builtin_fields.JSONField):
         def __init__(self, *args, **kwargs):
             warnings.warn(
                 "You are using Django 3.1 or newer, which already has a built-in JSONField. "
@@ -32,6 +32,17 @@ if django.VERSION >= (3, 1):
                 stacklevel=2,
             )
             super().__init__(*args, **kwargs)
+
+        def bound_data(self, data, initial):
+            # Backport fix for https://code.djangoproject.com/ticket/32807
+            if self.disabled:
+                return initial
+            if data is None:
+                return None
+            try:
+                return json.loads(data, cls=self.decoder)
+            except json.JSONDecodeError:
+                return builtin_fields.InvalidJSONInput(data)
 
 
 else:
@@ -68,6 +79,8 @@ else:
         def bound_data(self, data, initial):
             if self.disabled:
                 return initial
+            if data is None:
+                return None
             try:
                 return json.loads(data, cls=self.decoder)
             except json.JSONDecodeError:
