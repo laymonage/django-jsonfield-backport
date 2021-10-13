@@ -52,7 +52,6 @@ if django.VERSION >= (3, 1):
             "id": "django_jsonfield_backport.W001",
         }
 
-
 else:
 
     class JSONField(CheckFieldDefaultMixin, Field):
@@ -370,7 +369,6 @@ if django.VERSION >= (3, 1):
                 stacklevel=2,
             )
             super().__init__(*args, **kwargs)
-
 
 else:
 

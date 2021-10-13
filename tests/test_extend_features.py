@@ -1,9 +1,11 @@
-from unittest import mock
+from unittest import mock, skipIf
 
+import django
+from django.db import connection
 from django.db.backends.base.features import BaseDatabaseFeatures
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, TestCase
 
-from django_jsonfield_backport.features import extend_features
+from django_jsonfield_backport.features import extend_default_connection, extend_features
 
 FIELD_NAME = "this_field_should_never_exist"
 
@@ -82,3 +84,14 @@ class ExtendFeaturesTest(SimpleTestCase):
 
         # Make sure the fake feature is still not there
         self.assertIs(hasattr(connection.features, FIELD_NAME), False)
+
+
+@skipIf(django.VERSION >= (3, 1), "Not applicable.")
+class ExtendDefaultConnectionTest(TestCase):
+    def setUp(self):
+        connection.features = connection.features_class(connection)
+
+    def test_extend_default_connection(self):
+        self.assertIs(hasattr(connection.features, "supports_json_field"), False)
+        extend_default_connection()
+        self.assertIs(hasattr(connection.features, "supports_json_field"), True)

@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import connection, transaction
 from django.db.backends.base.features import BaseDatabaseFeatures
 from django.db.backends.signals import connection_created
 from django.db.utils import OperationalError
@@ -70,6 +70,14 @@ def extend_features(connection, **kwargs):
         if callable(feature):
             value = feature(connection.features)
         setattr(connection.features, name, value)
+
+
+def extend_default_connection():
+    # For management commands and shell, another app may have already created
+    # a default database connection before the signal receiver is connected,
+    # so we extend_features immediately if the connection exists and is usable.
+    if connection.connection and connection.is_usable():
+        extend_features(connection)
 
 
 def connect_signal_receivers():

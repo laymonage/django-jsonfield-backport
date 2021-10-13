@@ -44,7 +44,6 @@ if django.VERSION >= (3, 1):
             except json.JSONDecodeError:
                 return builtin_fields.InvalidJSONInput(data)
 
-
 else:
 
     class JSONField(CharField):

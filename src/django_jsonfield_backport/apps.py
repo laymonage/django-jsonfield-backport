@@ -16,6 +16,7 @@ class JSONFieldConfig(AppConfig):
     def ready(self):
         if django.VERSION >= (3, 1):
             return
+        features.extend_default_connection()
         features.connect_signal_receivers()
         forms.patch_admin()
         models.register_lookups()
