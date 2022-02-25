@@ -1,7 +1,7 @@
-import django
+from django import VERSION as django_version
 from django.apps import AppConfig
 
-if django.VERSION >= (3, 0):
+if django_version >= (3, 0):
     from django.utils.translation import gettext_lazy as _
 else:
     from django.utils.translation import ugettext_lazy as _
@@ -14,7 +14,7 @@ class JSONFieldConfig(AppConfig):
     verbose_name = _("JSONField backport from Django 3.1")
 
     def ready(self):
-        if django.VERSION >= (3, 1):
+        if django_version >= (3, 1):
             return
         features.extend_default_connection()
         features.connect_signal_receivers()

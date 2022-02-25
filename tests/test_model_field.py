@@ -2,7 +2,7 @@ import operator
 import uuid
 from unittest import mock, skipIf
 
-import django
+from django import VERSION as django_version
 from django.core import serializers
 from django.core.exceptions import ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
@@ -63,7 +63,7 @@ class TestMethods(SimpleTestCase):
         self.assertEqual(kwargs["encoder"], DjangoJSONEncoder)
         self.assertEqual(kwargs["decoder"], CustomJSONDecoder)
 
-    @skipIf(django.VERSION >= (3, 1), "Not applicable.")
+    @skipIf(django_version >= (3, 1), "Not applicable.")
     def test_get_transforms(self):
         @JSONField.register_lookup
         class MyTransform(Transform):
@@ -109,7 +109,7 @@ class TestValidation(SimpleTestCase):
 
 
 class TestFormField(SimpleTestCase):
-    @skipIf(django.VERSION >= (3, 1), "Not applicable.")
+    @skipIf(django_version >= (3, 1), "Not applicable.")
     def test_formfield(self):
         model_field = JSONField()
         form_field = model_field.formfield()

@@ -1,6 +1,6 @@
 from unittest import skipUnless
 
-import django
+from django import VERSION as django_version
 from django.core.checks import Warning as DjangoWarning
 from django.test import SimpleTestCase
 
@@ -9,7 +9,7 @@ from django_jsonfield_backport import forms, models
 from .models import JSONModel
 
 
-@skipUnless(django.VERSION >= (3, 1), "Only show deprecation message for Django >= 3.1.")
+@skipUnless(django_version >= (3, 1), "Only show deprecation message for Django >= 3.1.")
 class DeprecationTests(SimpleTestCase):
     def test_model_field_deprecation_message(self):
         self.assertEqual(

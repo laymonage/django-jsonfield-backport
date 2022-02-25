@@ -1,6 +1,6 @@
 from unittest import skipIf
 
-import django
+from django import VERSION as django_version
 from django.core.checks import Error, Warning as DjangoWarning
 from django.db import connection, models
 from django.test import TestCase, skipUnlessDBFeature
@@ -10,7 +10,7 @@ from django_jsonfield_backport.models import JSONField
 
 
 @isolate_apps("tests")
-@skipIf(django.VERSION >= (3, 1), "Not applicable.")
+@skipIf(django_version >= (3, 1), "Not applicable.")
 class CheckTests(TestCase):
     @skipUnlessDBFeature("supports_json_field")
     def test_ordering_pointing_to_json_field_value(self):
@@ -53,7 +53,7 @@ class CheckTests(TestCase):
 
 @isolate_apps("tests")
 @skipUnlessDBFeature("supports_json_field")
-@skipIf(django.VERSION >= (3, 1), "Not applicable.")
+@skipIf(django_version >= (3, 1), "Not applicable.")
 class DefaultTests(TestCase):
     def test_invalid_default(self):
         class Model(models.Model):

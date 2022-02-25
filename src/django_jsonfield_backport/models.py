@@ -1,7 +1,7 @@
 import json
 import warnings
 
-import django
+from django import VERSION as django_version
 from django.core import checks, exceptions
 from django.db import NotSupportedError, connections, router
 from django.db.models import lookups
@@ -42,7 +42,7 @@ class CheckFieldDefaultMixin:
         return errors
 
 
-if django.VERSION >= (3, 1):
+if django_version >= (3, 1):
     from django.db.models import JSONField as BuiltinJSONField
 
     class JSONField(BuiltinJSONField):
@@ -344,7 +344,7 @@ class JSONExact(lookups.Exact):
         return rhs, rhs_params
 
 
-if django.VERSION >= (3, 1):
+if django_version >= (3, 1):
     from django.db.models.fields.json import (
         KeyTextTransform as BuiltinKeyTextTransform,
         KeyTransform as BuiltinKeyTransform,

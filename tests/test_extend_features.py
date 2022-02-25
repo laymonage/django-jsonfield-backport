@@ -1,6 +1,6 @@
 from unittest import mock, skipIf
 
-import django
+from django import VERSION as django_version
 from django.db import connection
 from django.db.backends.base.features import BaseDatabaseFeatures
 from django.test import SimpleTestCase, TestCase
@@ -86,7 +86,7 @@ class ExtendFeaturesTest(SimpleTestCase):
         self.assertIs(hasattr(connection.features, FIELD_NAME), False)
 
 
-@skipIf(django.VERSION >= (3, 1), "Not applicable.")
+@skipIf(django_version >= (3, 1), "Not applicable.")
 class ExtendDefaultConnectionTest(TestCase):
     def setUp(self):
         connection.features = connection.features_class(connection)
